@@ -118,10 +118,7 @@ Verifier Logic:
 
 ## LLM challenges
 
-
-the core challenge lies in how a robot or AI system would resolve conflicts between competing verification frameworks (e.g., positivist empiricism vs. constructivist power analysis) when optimizing for automated rewards.
-
-When a robot optimizes for "automated rewards" derived from philosophical verification criteria, it faces three key issues:
+The core challenge lies in how a robot or AI system would resolve conflicts between competing verification frameworks (e.g., positivist empiricism vs. constructivist power analysis) when optimizing for automated rewards. When a robot optimizes for "automated rewards" derived from philosophical verification criteria, it faces three key issues:
 
 * **Value Pluralism**: Different verification frameworks prioritize conflicting goals (e.g., empirical accuracy vs. ethical fairness).
 * **Reward Specification**: Translating abstract philosophical ideals into computable reward functions (e.g., "justice" or "truth").
@@ -154,5 +151,13 @@ Some of the ways, it needs to express its opinion is:
 An ideal system therefore will not:
 * The LLM exploits loopholes in verification criteria
 * Dominant verification frameworks and marginalize minority perspectives.
-* Acknowledge that verification framework is universally "correct."
+* Acknowledge that verification framework is universally "correct".
+
+## Core Principles for Automation
+
+To avoid building verifiers "one by one," focus on:
+
+* **Generalization**: Create verifiers that adapt to new domains with minimal manual tweaking.
+* **Compositionality**: Build verifiers from reusable components (e.g., logic modules, data validators).
+* **Self-Improvement**: Use feedback loops to iteratively refine verifiers.
 
