@@ -10,4 +10,5 @@ This one draws inspiration from the ଚିଲିକା ଚିଲ (Chilika Chil),
 
 Just like them, I hope this project treads gracefully in its domain. 🌿✨
 
-![Such a good boi](https://inaturalist-open-data.s3.amazonaws.com/photos/782915/large.jpg)
+
+<img src="https://inaturalist-open-data.s3.amazonaws.com/photos/782915/large.jpg" alt="drawing" width="400"/>
