@@ -7,7 +7,7 @@ A unified philosophical verification and distributed consensus framework named a
 Chil integrates six philosophical verification frameworks with modified Paxos consensus to create a dual-mode system:
 
 - **Individual Mode**: Traditional claim verification using empirical, contextual, consistency, power dynamics, utility, and evolution frameworks
-- **Consensus Mode**: Distributed verification across multiple nodes using philosophical Paxos protocol  
+- **Consensus Mode**: Distributed verification across multiple nodes using philosophical Paxos protocol
 - **Hybrid Mode**: Both capabilities active simultaneously
 
 ## Quick Start
@@ -19,7 +19,7 @@ pip install -e .
 # Run individual verification
 python scripts/run_verifier.py --mode individual
 
-# Run consensus verification  
+# Run consensus verification
 python scripts/run_verifier.py --mode consensus
 
 # Run tests
@@ -34,7 +34,7 @@ python -c "import chil; v = chil.create_verifier(); print('Chil ready!')"
 ```
 chil/                   # Main package
 ├── framework/          # Core verification frameworks
-│   ├── individual/     # Individual verification components  
+│   ├── individual/     # Individual verification components
 │   ├── consensus/      # Consensus protocol implementation
 │   ├── meta/          # Meta-verification capabilities
 │   └── consensus_types.py  # Shared type definitions
@@ -45,7 +45,7 @@ chil/                   # Main package
 
 docs/                  # Documentation
 ├── philosophy/        # Philosophical foundations
-├── architecture/      # System design documents  
+├── architecture/      # System design documents
 └── examples/          # Usage examples
 
 tests/                 # Comprehensive test suite
@@ -56,6 +56,31 @@ tests/                 # Comprehensive test suite
 scripts/               # Utility scripts
 ```
 
+```
+  chil/framework/
+  ├── empirical/          # 📊 Fact-checking & academic sources
+  │   ├── __init__.py
+  │   └── empirical_real.py
+  ├── contextual/         # 🎭 NLP & cultural analysis
+  │   ├── __init__.py
+  │   └── contextual_real.py
+  ├── consistency/        # 🔍 Logic & theorem proving
+  │   ├── __init__.py
+  │   ├── consistency_real.py
+  │   └── consistency_formal.py
+  ├── power_dynamics/     # ⚖️ Bias & perspective analysis
+  │   ├── __init__.py
+  │   └── power_dynamics_real.py
+  ├── utility/           # 💰 Cost-benefit & actionability
+  │   ├── __init__.py
+  │   └── utility_real.py
+  ├── evolution/         # 🔄 Temporal & adaptive learning
+  │   ├── __init__.py
+  │   └── evolutionary.py
+  └── llm_integration/   # 🤖 LLM + formal verification
+      ├── __init__.py
+      └── llm_formal_integration.py
+```
 
 ## Why the name ?
 As many of you know, I have a deep love for birds. All my project names are inspired by birds observed near Chilika, Odisha.
