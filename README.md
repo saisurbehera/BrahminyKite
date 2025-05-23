@@ -1,6 +1,60 @@
-# BrahminyKite
+# Chil
 
-In this project, we will be covering verifiers and how to tune a lot of verifiers for RL tasks. This repo will be covering why we need these, how to make verifiers optimize over such large spaces, what are some tools they could use and how they can co-ordinate actions.
+A unified philosophical verification and distributed consensus framework named after the Chilika Chil (Brahminy Kite). Combines individual claim verification with distributed consensus protocols.
+
+## Overview
+
+Chil integrates six philosophical verification frameworks with modified Paxos consensus to create a dual-mode system:
+
+- **Individual Mode**: Traditional claim verification using empirical, contextual, consistency, power dynamics, utility, and evolution frameworks
+- **Consensus Mode**: Distributed verification across multiple nodes using philosophical Paxos protocol  
+- **Hybrid Mode**: Both capabilities active simultaneously
+
+## Quick Start
+
+```bash
+# Install chil package
+pip install -e .
+
+# Run individual verification
+python scripts/run_verifier.py --mode individual
+
+# Run consensus verification  
+python scripts/run_verifier.py --mode consensus
+
+# Run tests
+python tests/run_tests.py
+
+# Use in Python
+python -c "import chil; v = chil.create_verifier(); print('Chil ready!')"
+```
+
+## Architecture
+
+```
+chil/                   # Main package
+├── framework/          # Core verification frameworks
+│   ├── individual/     # Individual verification components  
+│   ├── consensus/      # Consensus protocol implementation
+│   ├── meta/          # Meta-verification capabilities
+│   └── consensus_types.py  # Shared type definitions
+├── system/            # System orchestration
+│   ├── orchestration/ # Core orchestrator and mode bridging
+│   └── compatibility/ # Backward compatibility layer
+└── config/            # Configuration management
+
+docs/                  # Documentation
+├── philosophy/        # Philosophical foundations
+├── architecture/      # System design documents  
+└── examples/          # Usage examples
+
+tests/                 # Comprehensive test suite
+├── unit/             # Unit tests
+├── integration/      # Integration tests
+└── compatibility/    # Backward compatibility tests
+
+scripts/               # Utility scripts
+```
 
 
 ## Why the name ?

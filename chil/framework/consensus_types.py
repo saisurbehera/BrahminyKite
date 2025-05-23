@@ -1,0 +1,405 @@
+"""
+Consensus-specific data types and enums for the unified verification framework.
+
+This module defines all the data structures needed for distributed consensus
+verification while maintaining compatibility with individual verification modes.
+"""
+
+from enum import Enum
+from dataclasses import dataclass, field
+from typing import Dict, List, Any, Optional, Union, Set
+from datetime import datetime, timedelta
+import uuid
+
+
+class VerificationMode(Enum):
+    """Operation modes for the unified verifier"""
+    INDIVIDUAL = "individual"
+    CONSENSUS = "consensus" 
+    HYBRID = "hybrid"
+
+
+class ConsensusProtocol(Enum):
+    """Supported consensus protocols"""
+    PAXOS = "paxos"
+    RAFT = "raft"
+    PBFT = "pbft"  # For future Byzantine fault tolerance
+
+
+class ProposalType(Enum):
+    """Types of proposals that can be made in consensus mode"""
+    CLAIM_VALIDATION = "claim_validation"
+    MODEL_UPDATE = "model_update"
+    POLICY_CHANGE = "policy_change"
+    ETHICAL_GUIDELINE = "ethical_guideline"
+    FRAMEWORK_WEIGHT_UPDATE = "framework_weight_update"
+    SYSTEM_CONFIGURATION = "system_configuration"
+    EMERGENCY_OVERRIDE = "emergency_override"
+
+
+class ApprovalStatus(Enum):
+    """Possible approval statuses from verifiers"""
+    APPROVE = "approve"
+    REJECT = "reject"
+    ABSTAIN = "abstain"
+    CONDITIONAL = "conditional"
+
+
+class NodeRole(Enum):
+    """Roles in the consensus protocol"""
+    PROPOSER = "proposer"
+    ACCEPTOR = "acceptor" 
+    LEARNER = "learner"
+    OBSERVER = "observer"
+
+
+class TrustModel(Enum):
+    """Trust models for node relationships"""
+    UNIFORM = "uniform"
+    REPUTATION_BASED = "reputation_based"
+    AUTHORITY_WEIGHTED = "authority_weighted"
+    DOMAIN_EXPERTISE = "domain_expertise"
+
+
+class PartitionStrategy(Enum):
+    """Strategies for handling network partitions"""
+    WAIT = "wait"
+    MAJORITY_CONTINUES = "majority_continues"
+    SPLIT_BRAIN_PROTECTION = "split_brain_protection"
+
+
+class MergingStrategy(Enum):
+    """Strategies for merging verification results"""
+    WEIGHTED_AVERAGE = "weighted_average"
+    CONSENSUS_PRIORITY = "consensus_priority"
+    INDIVIDUAL_PRIORITY = "individual_priority"
+    FRAMEWORK_SPECIFIC = "framework_specific"
+
+
+@dataclass
+class ConsensusProposal:
+    """A proposal for distributed consensus verification"""
+    proposal_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    proposal_type: ProposalType = ProposalType.CLAIM_VALIDATION
+    content: Dict[str, Any] = field(default_factory=dict)
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    domain: 'Domain' = None  # Forward reference to avoid circular import
+    priority_level: int = 3  # 1=critical, 5=routine
+    timeout: int = 30  # Consensus timeout in seconds
+    required_verifiers: List[str] = field(default_factory=list)
+    proposer_id: str = ""
+    timestamp: datetime = field(default_factory=datetime.now)
+    expires_at: Optional[datetime] = None
+    
+    def __post_init__(self):
+        if self.expires_at is None:
+            self.expires_at = self.timestamp + timedelta(seconds=self.timeout)
+    
+    def is_expired(self) -> bool:
+        """Check if proposal has expired"""
+        return datetime.now() > self.expires_at
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for serialization"""
+        return {
+            "proposal_id": self.proposal_id,
+            "proposal_type": self.proposal_type.value,
+            "content": self.content,
+            "metadata": self.metadata,
+            "domain": self.domain.value if self.domain else None,
+            "priority_level": self.priority_level,
+            "timeout": self.timeout,
+            "required_verifiers": self.required_verifiers,
+            "proposer_id": self.proposer_id,
+            "timestamp": self.timestamp.isoformat(),
+            "expires_at": self.expires_at.isoformat() if self.expires_at else None
+        }
+
+
+@dataclass
+class NodeContext:
+    """Context about the current node in consensus"""
+    node_id: str
+    node_role: NodeRole
+    network_partition: bool = False
+    local_data: Dict[str, Any] = field(default_factory=dict)
+    trust_scores: Dict[str, float] = field(default_factory=dict)
+    peer_nodes: List[str] = field(default_factory=list)
+    last_heartbeat: datetime = field(default_factory=datetime.now)
+    philosophical_weights: Dict[str, float] = field(default_factory=dict)
+    domain_expertise: Dict[str, float] = field(default_factory=dict)
+    
+    def update_trust(self, node_id: str, score: float):
+        """Update trust score for a peer node"""
+        self.trust_scores[node_id] = max(0.0, min(1.0, score))
+    
+    def get_trust(self, node_id: str) -> float:
+        """Get trust score for a peer node"""
+        return self.trust_scores.get(node_id, 0.5)  # Default neutral trust
+    
+    def is_trusted_peer(self, node_id: str, threshold: float = 0.6) -> bool:
+        """Check if a peer is trusted above threshold"""
+        return self.get_trust(node_id) >= threshold
+
+
+@dataclass
+class ConsensusCriteria:
+    """Criteria for consensus evaluation by a verifier"""
+    verifier_type: str
+    required_evidence: List[str] = field(default_factory=list)
+    validation_rules: Dict[str, Any] = field(default_factory=dict)
+    acceptance_threshold: float = 0.5
+    weight: float = 1.0
+    conditions: List[str] = field(default_factory=list)
+    exclusions: List[str] = field(default_factory=list)
+    
+    def meets_threshold(self, score: float) -> bool:
+        """Check if score meets acceptance threshold"""
+        return score >= self.acceptance_threshold
+    
+    def add_condition(self, condition: str):
+        """Add a condition for acceptance"""
+        if condition not in self.conditions:
+            self.conditions.append(condition)
+    
+    def add_exclusion(self, exclusion: str):
+        """Add an exclusion criteria"""
+        if exclusion not in self.exclusions:
+            self.exclusions.append(exclusion)
+
+
+@dataclass 
+class ConsensusVerificationResult:
+    """Result of consensus verification by a single component"""
+    verifier_type: str
+    proposal_id: str
+    approval_status: ApprovalStatus
+    confidence: float
+    evidence: Dict[str, Any] = field(default_factory=dict)
+    conditions: List[str] = field(default_factory=list)
+    expiry_time: Optional[datetime] = None
+    node_id: str = ""
+    framework: 'VerificationFramework' = None
+    reasoning: str = ""
+    
+    def is_valid(self) -> bool:
+        """Check if result is still valid (not expired)"""
+        if self.expiry_time is None:
+            return True
+        return datetime.now() <= self.expiry_time
+    
+    def is_approval(self) -> bool:
+        """Check if this is an approval result"""
+        return self.approval_status == ApprovalStatus.APPROVE
+    
+    def is_rejection(self) -> bool:
+        """Check if this is a rejection result"""
+        return self.approval_status == ApprovalStatus.REJECT
+
+
+@dataclass
+class PaxosMessage:
+    """Base class for Paxos protocol messages"""
+    proposal_number: int
+    sender_id: str
+    timestamp: datetime = field(default_factory=datetime.now)
+    message_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+
+
+@dataclass
+class PaxosPrepareRequest(PaxosMessage):
+    """Paxos Phase 1a: Prepare request"""
+    philosophical_criteria: Dict[str, ConsensusCriteria] = field(default_factory=dict)
+    proposal: Optional[ConsensusProposal] = None
+
+
+@dataclass 
+class PaxosPromise(PaxosMessage):
+    """Paxos Phase 1b: Promise response"""
+    promised: bool
+    previous_proposal_number: Optional[int] = None
+    previous_value: Optional[ConsensusProposal] = None
+    verifier_approvals: Dict[str, ConsensusCriteria] = field(default_factory=dict)
+    philosophical_stance: Dict[str, float] = field(default_factory=dict)
+    conditions: List[str] = field(default_factory=list)
+
+
+@dataclass
+class PaxosAcceptRequest(PaxosMessage):
+    """Paxos Phase 2a: Accept request"""
+    proposal: ConsensusProposal
+    philosophical_validation: Dict[str, ConsensusVerificationResult] = field(default_factory=dict)
+
+
+@dataclass
+class PaxosAcceptResponse(PaxosMessage):
+    """Paxos Phase 2b: Accept response"""
+    accepted: bool
+    proposal: Optional[ConsensusProposal] = None
+    verifier_validations: Dict[str, ConsensusVerificationResult] = field(default_factory=dict)
+    node_philosophical_state: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class ConsensusDebateRound:
+    """A single round of philosophical debate in consensus"""
+    round_number: int
+    participants: List[str]
+    arguments: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    attacks: Dict[str, Dict[str, Any]] = field(default_factory=dict)  
+    defenses: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    consensus_scores: Dict[str, float] = field(default_factory=dict)
+    timestamp: datetime = field(default_factory=datetime.now)
+
+
+@dataclass
+class ConsensusDebateSession:
+    """Complete philosophical debate session"""
+    session_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    proposal: ConsensusProposal = None
+    participants: List[str] = field(default_factory=list)
+    rounds: List[ConsensusDebateRound] = field(default_factory=list)
+    initial_scores: Dict[str, float] = field(default_factory=dict)
+    final_scores: Dict[str, float] = field(default_factory=dict)
+    consensus_evolution: List[float] = field(default_factory=list)
+    winner: Optional[str] = None
+    consensus_reached: bool = False
+    started_at: datetime = field(default_factory=datetime.now)
+    ended_at: Optional[datetime] = None
+
+
+@dataclass
+class MetaConsensusResult:
+    """Result of meta-level consensus analysis"""
+    final_decision: ApprovalStatus
+    confidence: float
+    verifier_agreement: Dict[str, float] = field(default_factory=dict)
+    conflict_resolution_method: str = ""
+    philosophical_rationale: str = ""
+    uncertainty_level: float = 0.0
+    consensus_quality: float = 0.0
+    minority_opinions: List[str] = field(default_factory=list)
+
+
+@dataclass
+class NetworkTopology:
+    """Network topology and health information"""
+    active_nodes: Set[str] = field(default_factory=set)
+    failed_nodes: Set[str] = field(default_factory=set)
+    partitioned_nodes: Set[str] = field(default_factory=set)
+    node_connections: Dict[str, List[str]] = field(default_factory=dict)
+    heartbeat_intervals: Dict[str, datetime] = field(default_factory=dict)
+    network_latencies: Dict[str, Dict[str, float]] = field(default_factory=dict)
+    
+    def add_node(self, node_id: str):
+        """Add a node to the topology"""
+        self.active_nodes.add(node_id)
+        self.failed_nodes.discard(node_id)
+        self.partitioned_nodes.discard(node_id)
+        self.heartbeat_intervals[node_id] = datetime.now()
+    
+    def remove_node(self, node_id: str):
+        """Remove a node from topology"""
+        self.active_nodes.discard(node_id)
+        self.failed_nodes.add(node_id)
+        if node_id in self.heartbeat_intervals:
+            del self.heartbeat_intervals[node_id]
+    
+    def is_majority_available(self) -> bool:
+        """Check if majority of nodes are available"""
+        total_nodes = len(self.active_nodes) + len(self.failed_nodes) + len(self.partitioned_nodes)
+        return len(self.active_nodes) > total_nodes // 2
+    
+    def get_quorum_size(self) -> int:
+        """Calculate required quorum size"""
+        return len(self.active_nodes) // 2 + 1
+
+
+@dataclass
+class ConsensusConfig:
+    """Configuration for consensus operations"""
+    consensus_protocol: ConsensusProtocol = ConsensusProtocol.PAXOS
+    node_id: str = field(default_factory=lambda: f"node_{uuid.uuid4().hex[:8]}")
+    peer_nodes: List[str] = field(default_factory=list)
+    required_quorum: float = 0.6
+    consensus_timeout: int = 30
+    max_consensus_rounds: int = 5
+    trust_model: TrustModel = TrustModel.UNIFORM
+    partition_strategy: PartitionStrategy = PartitionStrategy.WAIT
+    
+    # Philosophical consensus settings
+    enable_debate: bool = True
+    max_debate_rounds: int = 3
+    consensus_threshold: float = 0.7
+    unanimity_domains: List[str] = field(default_factory=list)
+    framework_weights: Dict[str, float] = field(default_factory=dict)
+    
+    # Network settings
+    heartbeat_interval: int = 5  # seconds
+    message_timeout: int = 10    # seconds
+    retry_attempts: int = 3
+    batch_size: int = 10
+    
+    def validate(self) -> List[str]:
+        """Validate configuration and return any errors"""
+        errors = []
+        
+        if not 0 < self.required_quorum <= 1:
+            errors.append("required_quorum must be between 0 and 1")
+        
+        if self.consensus_timeout <= 0:
+            errors.append("consensus_timeout must be positive")
+        
+        if self.max_consensus_rounds <= 0:
+            errors.append("max_consensus_rounds must be positive")
+        
+        if not 0 <= self.consensus_threshold <= 1:
+            errors.append("consensus_threshold must be between 0 and 1")
+        
+        return errors
+
+
+@dataclass
+class UnifiedResult:
+    """Combined result from both individual and consensus verification"""
+    individual_result: Optional[Dict[str, Any]] = None
+    consensus_result: Optional[MetaConsensusResult] = None
+    merged_score: float = 0.0
+    confidence_interval: tuple[float, float] = (0.0, 0.0)
+    agreement_level: float = 0.0
+    discrepancies: List[str] = field(default_factory=list)
+    recommendation: str = ""
+    merging_strategy: MergingStrategy = MergingStrategy.WEIGHTED_AVERAGE
+    
+    def has_agreement(self, threshold: float = 0.7) -> bool:
+        """Check if individual and consensus results agree"""
+        return self.agreement_level >= threshold
+    
+    def get_primary_result(self) -> Dict[str, Any]:
+        """Get the primary result based on merging strategy"""
+        if self.merging_strategy == MergingStrategy.CONSENSUS_PRIORITY:
+            return self.consensus_result.__dict__ if self.consensus_result else self.individual_result
+        elif self.merging_strategy == MergingStrategy.INDIVIDUAL_PRIORITY:
+            return self.individual_result if self.individual_result else self.consensus_result.__dict__
+        else:
+            # Return merged result
+            return {
+                "score": self.merged_score,
+                "confidence_interval": self.confidence_interval,
+                "agreement_level": self.agreement_level,
+                "recommendation": self.recommendation
+            }
+
+
+# Type aliases for common patterns
+ConsensusMessageUnion = Union[PaxosPrepareRequest, PaxosPromise, PaxosAcceptRequest, PaxosAcceptResponse]
+VerificationResultUnion = Union['VerificationResult', ConsensusVerificationResult]
+
+# Constants
+DEFAULT_CONSENSUS_TIMEOUT = 30
+DEFAULT_QUORUM_PERCENTAGE = 0.6
+DEFAULT_DEBATE_ROUNDS = 3
+DEFAULT_CONSENSUS_THRESHOLD = 0.7
+MAX_PROPOSAL_LIFETIME = 300  # 5 minutes
+MIN_NETWORK_SIZE = 3
+MAX_NETWORK_SIZE = 100
