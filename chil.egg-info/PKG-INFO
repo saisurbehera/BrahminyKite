@@ -1,0 +1,130 @@
+Metadata-Version: 2.4
+Name: chil
+Version: 0.1.0
+Summary: Unified philosophical verification and distributed consensus framework - Named after the Chilika Chil (Brahminy Kite)
+Project-URL: Homepage, https://github.com/user/brahminy-kite
+Project-URL: Repository, https://github.com/user/brahminy-kite
+Project-URL: Documentation, https://github.com/user/brahminy-kite/docs
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Classifier: Topic :: System :: Distributed Computing
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Requires-Dist: typing-extensions>=4.0.0
+Requires-Dist: dataclasses>=0.6; python_version < "3.7"
+Requires-Dist: aiohttp>=3.8.0
+Requires-Dist: requests>=2.28.0
+Requires-Dist: beautifulsoup4>=4.11.0
+Requires-Dist: spacy>=3.4.0
+Requires-Dist: transformers>=4.20.0
+Requires-Dist: scikit-learn>=1.1.0
+Requires-Dist: numpy>=1.21.0
+Requires-Dist: asyncio-mqtt>=0.11.0
+Provides-Extra: dev
+Requires-Dist: pytest>=6.0; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.18.0; extra == "dev"
+Requires-Dist: black>=22.0; extra == "dev"
+Requires-Dist: mypy>=0.950; extra == "dev"
+Requires-Dist: flake8>=4.0; extra == "dev"
+
+# Chil
+
+A unified philosophical verification and distributed consensus framework named after the Chilika Chil (Brahminy Kite). Combines individual claim verification with distributed consensus protocols.
+
+## Overview
+
+Chil integrates six philosophical verification frameworks with modified Paxos consensus to create a dual-mode system:
+
+- **Individual Mode**: Traditional claim verification using empirical, contextual, consistency, power dynamics, utility, and evolution frameworks
+- **Consensus Mode**: Distributed verification across multiple nodes using philosophical Paxos protocol
+- **Hybrid Mode**: Both capabilities active simultaneously
+
+## Quick Start
+
+```bash
+# Install chil package
+pip install -e .
+
+# Run individual verification
+python scripts/run_verifier.py --mode individual
+
+# Run consensus verification
+python scripts/run_verifier.py --mode consensus
+
+# Run tests
+python tests/run_tests.py
+
+# Use in Python
+python -c "import chil; v = chil.create_verifier(); print('Chil ready!')"
+```
+
+## Architecture
+
+```
+chil/                   # Main package
+├── framework/          # Core verification frameworks
+│   ├── individual/     # Individual verification components
+│   ├── consensus/      # Consensus protocol implementation
+│   ├── meta/          # Meta-verification capabilities
+│   └── consensus_types.py  # Shared type definitions
+├── system/            # System orchestration
+│   ├── orchestration/ # Core orchestrator and mode bridging
+│   └── compatibility/ # Backward compatibility layer
+└── config/            # Configuration management
+
+docs/                  # Documentation
+├── philosophy/        # Philosophical foundations
+├── architecture/      # System design documents
+└── examples/          # Usage examples
+
+tests/                 # Comprehensive test suite
+├── unit/             # Unit tests
+├── integration/      # Integration tests
+└── compatibility/    # Backward compatibility tests
+
+scripts/               # Utility scripts
+```
+
+```
+  chil/framework/
+  ├── empirical/          # 📊 Fact-checking & academic sources
+  │   ├── __init__.py
+  │   └── empirical_real.py
+  ├── contextual/         # 🎭 NLP & cultural analysis
+  │   ├── __init__.py
+  │   └── contextual_real.py
+  ├── consistency/        # 🔍 Logic & theorem proving
+  │   ├── __init__.py
+  │   ├── consistency_real.py
+  │   └── consistency_formal.py
+  ├── power_dynamics/     # ⚖️ Bias & perspective analysis
+  │   ├── __init__.py
+  │   └── power_dynamics_real.py
+  ├── utility/           # 💰 Cost-benefit & actionability
+  │   ├── __init__.py
+  │   └── utility_real.py
+  ├── evolution/         # 🔄 Temporal & adaptive learning
+  │   ├── __init__.py
+  │   └── evolutionary.py
+  └── llm_integration/   # 🤖 LLM + formal verification
+      ├── __init__.py
+      └── llm_formal_integration.py
+```
+
+## Why the name ?
+As many of you know, I have a deep love for birds. All my project names are inspired by birds observed near Chilika, Odisha.
+
+This one draws inspiration from the ଚିଲିକା ଚିଲ (Chilika Chil), the Brahminy Kite—a majestic hunter whose wings carve arcs across sunlit skies.
+
+Just like them, I hope this project treads gracefully in its domain. 🌿✨
+
+
+<img src="https://inaturalist-open-data.s3.amazonaws.com/photos/782915/large.jpg" alt="drawing" width="400"/>
