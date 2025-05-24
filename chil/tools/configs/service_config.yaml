@@ -1,0 +1,70 @@
+# Service Configuration for BrahminyKite Tools
+
+services:
+  empirical:
+    port: 50051
+    max_workers: 10
+    duckdb_path: "./data/facts.db"
+    oxigraph_path: "./data/knowledge.rdf"
+    cache_size: 10000
+    
+  contextual:
+    port: 50052
+    max_workers: 8
+    spacy_model: "en_core_web_sm"
+    faiss_index_path: "./data/embeddings.index"
+    gensim_models: "./data/topic_models/"
+    
+  consistency:
+    port: 50053
+    max_workers: 6
+    sqlite_path: "./data/patterns.db"
+    souffle_binary: "/usr/local/bin/souffle"
+    
+  power_dynamics:
+    port: 50054
+    max_workers: 8
+    rust_binary: "./rust/target/release/bias_detector"
+    fairness_configs: "./configs/fairness_metrics.json"
+    
+  utility:
+    port: 50055
+    max_workers: 10
+    xgboost_models: "./models/xgboost/"
+    ortools_threads: 4
+    
+  evolution:
+    port: 50056
+    max_workers: 12
+    deap_configs: "./configs/genetic_algorithms.json"
+    ray_local_mode: true
+    rust_evolution: "./rust/target/release/evolution"
+
+# Client configuration
+clients:
+  timeout_ms: 5000
+  retry_attempts: 3
+  keepalive_ms: 10000
+  max_message_size: 52428800  # 50MB
+
+# Performance settings
+performance:
+  cache:
+    type: "lru"
+    size: 10000
+    ttl_seconds: 3600
+    
+  batching:
+    enabled: true
+    max_batch_size: 100
+    batch_timeout_ms: 50
+    
+  threading:
+    pool_size: 20
+    queue_size: 1000
+
+# Monitoring
+monitoring:
+  metrics_port: 9090
+  enable_tracing: true
+  log_level: "INFO"
