@@ -1,0 +1,27 @@
+{{- if .Values.services.evolution.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "brahminykite.fullname" . }}-evolution
+  labels:
+    {{- include "brahminykite.labels" . | nindent 4 }}
+    app.kubernetes.io/component: evolution
+  {{- with .Values.services.evolution.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.services.evolution.service.type | default "ClusterIP" }}
+  ports:
+    - port: {{ .Values.services.evolution.service.grpcPort }}
+      targetPort: grpc
+      protocol: TCP
+      name: grpc
+    - port: {{ .Values.services.evolution.service.httpPort }}
+      targetPort: http
+      protocol: TCP
+      name: metrics
+  selector:
+    {{- include "brahminykite.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: evolution
+{{- end }}

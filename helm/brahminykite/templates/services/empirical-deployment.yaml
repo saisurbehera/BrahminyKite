@@ -1,0 +1,107 @@
+{{- if .Values.services.empirical.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "brahminykite.fullname" . }}-empirical
+  labels:
+    {{- include "brahminykite.labels" . | nindent 4 }}
+    app.kubernetes.io/component: empirical
+  {{- with .Values.services.empirical.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.services.empirical.replicas }}
+  selector:
+    matchLabels:
+      {{- include "brahminykite.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: empirical
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.services.empirical.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "brahminykite.labels" . | nindent 8 }}
+        app.kubernetes.io/component: empirical
+        {{- with .Values.services.empirical.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "brahminykite.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.services.empirical.podSecurityContext | nindent 8 }}
+      containers:
+        - name: empirical
+          securityContext:
+            {{- toYaml .Values.services.empirical.securityContext | nindent 12 }}
+          image: "{{ .Values.services.empirical.image.repository }}:{{ .Values.services.empirical.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.services.empirical.image.pullPolicy }}
+          ports:
+            - name: grpc
+              containerPort: {{ .Values.services.empirical.service.grpcPort }}
+              protocol: TCP
+            - name: http
+              containerPort: {{ .Values.services.empirical.service.httpPort }}
+              protocol: TCP
+          livenessProbe:
+            grpc:
+              port: {{ .Values.services.empirical.service.grpcPort }}
+            initialDelaySeconds: {{ .Values.services.empirical.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.services.empirical.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.services.empirical.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.services.empirical.livenessProbe.failureThreshold }}
+          readinessProbe:
+            grpc:
+              port: {{ .Values.services.empirical.service.grpcPort }}
+            initialDelaySeconds: {{ .Values.services.empirical.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.services.empirical.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.services.empirical.readinessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.services.empirical.readinessProbe.successThreshold }}
+          resources:
+            {{- toYaml .Values.services.empirical.resources | nindent 12 }}
+          env:
+            - name: SERVICE_NAME
+              value: empirical
+            - name: GRPC_PORT
+              value: "{{ .Values.services.empirical.service.grpcPort }}"
+            - name: HTTP_PORT
+              value: "{{ .Values.services.empirical.service.httpPort }}"
+            - name: LOG_LEVEL
+              value: "{{ .Values.global.logLevel }}"
+            {{- with .Values.services.empirical.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+              readOnly: true
+            {{- with .Values.services.empirical.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "brahminykite.fullname" . }}-config
+        {{- with .Values.services.empirical.volumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.services.empirical.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.services.empirical.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.services.empirical.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

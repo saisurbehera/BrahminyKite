@@ -1,0 +1,27 @@
+{{- if .Values.services.utility.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "brahminykite.fullname" . }}-utility
+  labels:
+    {{- include "brahminykite.labels" . | nindent 4 }}
+    app.kubernetes.io/component: utility
+  {{- with .Values.services.utility.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.services.utility.service.type | default "ClusterIP" }}
+  ports:
+    - port: {{ .Values.services.utility.service.grpcPort }}
+      targetPort: grpc
+      protocol: TCP
+      name: grpc
+    - port: {{ .Values.services.utility.service.httpPort }}
+      targetPort: http
+      protocol: TCP
+      name: metrics
+  selector:
+    {{- include "brahminykite.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: utility
+{{- end }}

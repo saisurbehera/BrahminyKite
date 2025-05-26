@@ -1,0 +1,135 @@
+Thank you for installing {{ .Chart.Name }}!
+
+Your release is named: {{ .Release.Name }}
+
+{{- if .Values.namespace.create }}
+Namespace: {{ include "brahminykite.namespace" . }}
+{{- else }}
+Namespace: {{ .Release.Namespace }}
+{{- end }}
+
+Chart Version: {{ .Chart.Version }}
+App Version: {{ .Chart.AppVersion }}
+
+=============================================================================
+🚀 BrahminyKite has been deployed!
+=============================================================================
+
+📋 Service Status:
+{{- range $key, $service := .Values.services }}
+{{- if hasKey $service "enabled" }}
+{{- if $service.enabled }}
+  ✓ {{ $service.name }} - Running on port {{ $service.port }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if .Values.api.enabled }}
+  ✓ API Gateway - Running on port {{ .Values.api.service.port }}
+{{- end }}
+
+📊 External Dependencies:
+{{- if .Values.postgresql.enabled }}
+  ✓ PostgreSQL - Deployed via subchart
+{{- else }}
+  ⚠️  PostgreSQL - Using external instance
+{{- end }}
+{{- if .Values.redis.enabled }}
+  ✓ Redis - Deployed via subchart
+{{- else }}
+  ⚠️  Redis - Using external instance
+{{- end }}
+
+{{- if .Values.ingress.enabled }}
+🌐 Ingress Configuration:
+{{- range .Values.ingress.hosts }}
+  • {{ .host }}
+{{- end }}
+{{- if .Values.ingress.tls }}
+  🔒 TLS enabled
+{{- end }}
+{{- end }}
+
+=============================================================================
+📝 Quick Start Commands:
+=============================================================================
+
+1. Check deployment status:
+   kubectl get pods -n {{ include "brahminykite.namespace" . }} -l app.kubernetes.io/instance={{ .Release.Name }}
+
+2. Check service endpoints:
+   kubectl get services -n {{ include "brahminykite.namespace" . }} -l app.kubernetes.io/instance={{ .Release.Name }}
+
+{{- if .Values.api.enabled }}
+3. Access the API (port-forward):
+   kubectl port-forward -n {{ include "brahminykite.namespace" . }} svc/{{ include "brahminykite.fullname" . }}-api 8000:{{ .Values.api.service.port }}
+   
+   Then visit: http://localhost:8000/docs
+{{- end }}
+
+{{- if and .Values.prometheus.enabled (index .Values "prometheus" "server" "enabled" | default true) }}
+4. Access Prometheus:
+   kubectl port-forward -n {{ include "brahminykite.namespace" . }} svc/{{ .Release.Name }}-prometheus-server 9090:80
+   
+   Then visit: http://localhost:9090
+{{- end }}
+
+{{- if and .Values.grafana.enabled }}
+5. Access Grafana:
+   kubectl port-forward -n {{ include "brahminykite.namespace" . }} svc/{{ .Release.Name }}-grafana 3000:80
+   
+   Then visit: http://localhost:3000
+   Username: {{ .Values.grafana.adminUser }}
+   Password: Get it by running:
+   kubectl get secret --namespace {{ include "brahminykite.namespace" . }} {{ .Release.Name }}-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+{{- end }}
+
+=============================================================================
+🧪 Run Tests:
+=============================================================================
+
+To run the included tests:
+   helm test {{ .Release.Name }} -n {{ include "brahminykite.namespace" . }}
+
+=============================================================================
+🔍 Troubleshooting:
+=============================================================================
+
+• View logs for a service:
+  kubectl logs -n {{ include "brahminykite.namespace" . }} -l app.kubernetes.io/component=<service-name> --tail=100
+
+• Describe a pod:
+  kubectl describe pod -n {{ include "brahminykite.namespace" . }} <pod-name>
+
+• Check events:
+  kubectl get events -n {{ include "brahminykite.namespace" . }} --sort-by='.lastTimestamp'
+
+=============================================================================
+📚 Documentation:
+=============================================================================
+
+For more information, visit:
+• GitHub: https://github.com/brahminykite/brahminykite
+• Documentation: https://docs.brahminykite.io
+• API Reference: {{ if .Values.ingress.enabled }}https://{{ (index .Values.ingress.hosts 0).host }}/docs{{ else }}http://localhost:8000/docs (after port-forward){{ end }}
+
+=============================================================================
+⚠️  Important Notes:
+=============================================================================
+
+{{- if not .Values.postgresql.enabled }}
+• You are using an external PostgreSQL instance. Make sure it's accessible and properly configured.
+{{- end }}
+
+{{- if not .Values.redis.enabled }}
+• You are using an external Redis instance. Make sure it's accessible and properly configured.
+{{- end }}
+
+{{- if .Values.autoscaling.enabled }}
+• Horizontal Pod Autoscaling is enabled. Pods will scale between {{ .Values.autoscaling.minReplicas }} and {{ .Values.autoscaling.maxReplicas }} replicas.
+{{- end }}
+
+{{- if eq .Values.environment "production" }}
+• Running in PRODUCTION mode. Ensure all security settings are properly configured.
+{{- end }}
+
+Thank you for using BrahminyKite! 🦅

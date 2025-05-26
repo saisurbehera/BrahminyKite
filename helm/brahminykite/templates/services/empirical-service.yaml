@@ -1,0 +1,27 @@
+{{- if .Values.services.empirical.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "brahminykite.fullname" . }}-empirical
+  labels:
+    {{- include "brahminykite.labels" . | nindent 4 }}
+    app.kubernetes.io/component: empirical
+  {{- with .Values.services.empirical.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.services.empirical.service.type | default "ClusterIP" }}
+  ports:
+    - port: {{ .Values.services.empirical.service.grpcPort }}
+      targetPort: grpc
+      protocol: TCP
+      name: grpc
+    - port: {{ .Values.services.empirical.service.httpPort }}
+      targetPort: http
+      protocol: TCP
+      name: metrics
+  selector:
+    {{- include "brahminykite.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: empirical
+{{- end }}

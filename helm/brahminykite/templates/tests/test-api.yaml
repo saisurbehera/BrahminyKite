@@ -1,0 +1,47 @@
+{{- if .Values.tests.enabled }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "brahminykite.fullname" . }}-test-api"
+  namespace: {{ include "brahminykite.namespace" . }}
+  labels:
+    {{- include "brahminykite.labels" . | nindent 4 }}
+    app.kubernetes.io/component: test
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  serviceAccountName: {{ include "brahminykite.serviceAccountName" . }}
+  containers:
+  - name: test-api
+    image: {{ .Values.tests.image.repository }}:{{ .Values.tests.image.tag }}
+    imagePullPolicy: {{ .Values.tests.image.pullPolicy }}
+    command:
+    - /bin/sh
+    - -c
+    - |
+      echo "Testing API connectivity..."
+      
+      # Test API health endpoint
+      echo "Testing API health endpoint..."
+      curl -f http://{{ include "brahminykite.fullname" . }}-api:{{ .Values.api.service.port }}/health || exit 1
+      echo "✓ API health check passed"
+      
+      # Test API ready endpoint
+      echo "Testing API ready endpoint..."
+      curl -f http://{{ include "brahminykite.fullname" . }}-api:{{ .Values.api.service.port }}/health/ready || exit 1
+      echo "✓ API ready check passed"
+      
+      # Test OpenAPI endpoint
+      echo "Testing OpenAPI endpoint..."
+      curl -f http://{{ include "brahminykite.fullname" . }}-api:{{ .Values.api.service.port }}/openapi.json || exit 1
+      echo "✓ OpenAPI endpoint accessible"
+      
+      # Test metrics endpoint
+      echo "Testing metrics endpoint..."
+      curl -f http://{{ include "brahminykite.fullname" . }}-api:{{ .Values.monitoring.metrics.port | default 9090 }}/metrics || exit 1
+      echo "✓ Metrics endpoint accessible"
+      
+      echo "All API tests passed!"
+  restartPolicy: Never
+{{- end }}

@@ -1,0 +1,107 @@
+{{- if .Values.services.evolution.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "brahminykite.fullname" . }}-evolution
+  labels:
+    {{- include "brahminykite.labels" . | nindent 4 }}
+    app.kubernetes.io/component: evolution
+  {{- with .Values.services.evolution.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.services.evolution.replicas }}
+  selector:
+    matchLabels:
+      {{- include "brahminykite.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: evolution
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.services.evolution.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "brahminykite.labels" . | nindent 8 }}
+        app.kubernetes.io/component: evolution
+        {{- with .Values.services.evolution.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "brahminykite.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.services.evolution.podSecurityContext | nindent 8 }}
+      containers:
+        - name: evolution
+          securityContext:
+            {{- toYaml .Values.services.evolution.securityContext | nindent 12 }}
+          image: "{{ .Values.services.evolution.image.repository }}:{{ .Values.services.evolution.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.services.evolution.image.pullPolicy }}
+          ports:
+            - name: grpc
+              containerPort: {{ .Values.services.evolution.service.grpcPort }}
+              protocol: TCP
+            - name: http
+              containerPort: {{ .Values.services.evolution.service.httpPort }}
+              protocol: TCP
+          livenessProbe:
+            grpc:
+              port: {{ .Values.services.evolution.service.grpcPort }}
+            initialDelaySeconds: {{ .Values.services.evolution.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.services.evolution.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.services.evolution.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.services.evolution.livenessProbe.failureThreshold }}
+          readinessProbe:
+            grpc:
+              port: {{ .Values.services.evolution.service.grpcPort }}
+            initialDelaySeconds: {{ .Values.services.evolution.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.services.evolution.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.services.evolution.readinessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.services.evolution.readinessProbe.successThreshold }}
+          resources:
+            {{- toYaml .Values.services.evolution.resources | nindent 12 }}
+          env:
+            - name: SERVICE_NAME
+              value: evolution
+            - name: GRPC_PORT
+              value: "{{ .Values.services.evolution.service.grpcPort }}"
+            - name: HTTP_PORT
+              value: "{{ .Values.services.evolution.service.httpPort }}"
+            - name: LOG_LEVEL
+              value: "{{ .Values.global.logLevel }}"
+            {{- with .Values.services.evolution.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+              readOnly: true
+            {{- with .Values.services.evolution.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "brahminykite.fullname" . }}-config
+        {{- with .Values.services.evolution.volumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.services.evolution.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.services.evolution.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.services.evolution.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

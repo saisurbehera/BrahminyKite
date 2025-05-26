@@ -1,0 +1,44 @@
+{{- if .Values.tests.enabled }}
+{{- range $key, $service := .Values.services }}
+{{- if hasKey $service "enabled" }}
+{{- if $service.enabled }}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "brahminykite.fullname" $ }}-test-{{ $service.name }}"
+  namespace: {{ include "brahminykite.namespace" $ }}
+  labels:
+    {{- include "brahminykite.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: test
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  serviceAccountName: {{ include "brahminykite.serviceAccountName" $ }}
+  containers:
+  - name: test-{{ $service.name }}
+    image: {{ $.Values.tests.image.repository }}:{{ $.Values.tests.image.tag }}
+    imagePullPolicy: {{ $.Values.tests.image.pullPolicy }}
+    command:
+    - /bin/sh
+    - -c
+    - |
+      echo "Testing {{ $service.name }} service..."
+      
+      # Test gRPC health check
+      echo "Testing gRPC health check for {{ $service.name }}..."
+      grpc_health_probe -addr={{ include "brahminykite.fullname" $ }}-{{ $service.name }}:{{ $service.port }} || exit 1
+      echo "✓ {{ $service.name }} gRPC health check passed"
+      
+      # Test metrics endpoint
+      echo "Testing metrics endpoint for {{ $service.name }}..."
+      curl -f http://{{ include "brahminykite.fullname" $ }}-{{ $service.name }}:{{ $.Values.monitoring.metrics.port | default 9090 }}/metrics || exit 1
+      echo "✓ {{ $service.name }} metrics endpoint accessible"
+      
+      echo "All tests passed for {{ $service.name }}!"
+  restartPolicy: Never
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

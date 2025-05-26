@@ -1,0 +1,27 @@
+{{- if .Values.services.powerDynamics.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "brahminykite.fullname" . }}-power-dynamics
+  labels:
+    {{- include "brahminykite.labels" . | nindent 4 }}
+    app.kubernetes.io/component: power-dynamics
+  {{- with .Values.services.powerDynamics.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.services.powerDynamics.service.type | default "ClusterIP" }}
+  ports:
+    - port: {{ .Values.services.powerDynamics.service.grpcPort }}
+      targetPort: grpc
+      protocol: TCP
+      name: grpc
+    - port: {{ .Values.services.powerDynamics.service.httpPort }}
+      targetPort: http
+      protocol: TCP
+      name: metrics
+  selector:
+    {{- include "brahminykite.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: power-dynamics
+{{- end }}

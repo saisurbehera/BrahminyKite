@@ -1,0 +1,440 @@
+# Default values for brahminykite.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Global settings
+global:
+  # Image pull secrets for private registries
+  imagePullSecrets: []
+  # - name: myregistrykey
+  
+  # Storage class for persistent volumes
+  storageClass: ""
+  
+  # Node selector for all pods
+  nodeSelector: {}
+  
+  # Tolerations for all pods
+  tolerations: []
+  
+  # Affinity rules for all pods
+  affinity: {}
+
+  # PostgreSQL settings (shared with subchart)
+  postgresql:
+    auth:
+      username: brahminykite
+      password: brahminykite-prod-2024
+      database: brahminykite
+
+  # Redis settings (shared with subchart)
+  redis:
+    auth:
+      enabled: false
+      password: ""
+
+# Namespace configuration
+namespace:
+  create: true
+  name: brahminykite
+
+# Service account configuration
+serviceAccount:
+  create: true
+  name: brahminykite-service
+  annotations: {}
+
+# Framework services configuration
+services:
+  # Common settings for all services
+  replicaCount: 2
+  
+  image:
+    registry: docker.io
+    pullPolicy: IfNotPresent
+    tag: "1.0.0"
+  
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "200m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  # Individual service configurations
+  empirical:
+    enabled: true
+    name: empirical-service
+    port: 50051
+    image:
+      repository: brahminykite/empirical-service
+    replicaCount: 2
+    
+  contextual:
+    enabled: true
+    name: contextual-service
+    port: 50052
+    image:
+      repository: brahminykite/contextual-service
+    replicaCount: 2
+    
+  consistency:
+    enabled: true
+    name: consistency-service
+    port: 50053
+    image:
+      repository: brahminykite/consistency-service
+    replicaCount: 2
+    
+  powerDynamics:
+    enabled: true
+    name: power-dynamics-service
+    port: 50054
+    image:
+      repository: brahminykite/power-dynamics-service
+    replicaCount: 2
+    
+  utility:
+    enabled: true
+    name: utility-service
+    port: 50055
+    image:
+      repository: brahminykite/utility-service
+    replicaCount: 2
+    
+  evolution:
+    enabled: true
+    name: evolution-service
+    port: 50056
+    image:
+      repository: brahminykite/evolution-service
+    replicaCount: 2
+
+# API Gateway configuration
+api:
+  enabled: true
+  name: api-service
+  replicaCount: 3
+  
+  image:
+    registry: docker.io
+    repository: brahminykite/api
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 8000
+  
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "300m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+  
+  # API-specific environment variables
+  env:
+    LOG_LEVEL: "INFO"
+    CORS_ORIGINS: "*"
+    RATE_LIMIT_ENABLED: "true"
+    RATE_LIMIT_PER_MINUTE: "60"
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+  
+  hosts:
+    - host: api.brahminykite.io
+      paths:
+        - path: /
+          pathType: Prefix
+          service: api-service
+          port: 8000
+    
+    - host: grafana.brahminykite.io
+      paths:
+        - path: /
+          pathType: Prefix
+          service: grafana
+          port: 3000
+    
+    - host: prometheus.brahminykite.io
+      paths:
+        - path: /
+          pathType: Prefix
+          service: prometheus-server
+          port: 80
+  
+  tls:
+    - secretName: brahminykite-tls
+      hosts:
+        - api.brahminykite.io
+        - grafana.brahminykite.io
+        - prometheus.brahminykite.io
+
+# PostgreSQL configuration (Bitnami chart)
+postgresql:
+  enabled: true
+  
+  auth:
+    postgresPassword: "postgres-admin-2024"
+    username: brahminykite
+    password: "brahminykite-prod-2024"
+    database: brahminykite
+  
+  primary:
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClass: ""
+    
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "1Gi"
+        cpu: "1000m"
+    
+    initdb:
+      scripts:
+        init.sql: |
+          -- Create tables for BrahminyKite
+          CREATE TABLE IF NOT EXISTS verification_results (
+              id SERIAL PRIMARY KEY,
+              claim_id VARCHAR(255) NOT NULL,
+              framework VARCHAR(50) NOT NULL,
+              result JSONB NOT NULL,
+              confidence FLOAT NOT NULL,
+              evidence JSONB,
+              timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+          
+          CREATE TABLE IF NOT EXISTS consensus_decisions (
+              id SERIAL PRIMARY KEY,
+              claim_id VARCHAR(255) NOT NULL,
+              consensus_result JSONB NOT NULL,
+              participating_frameworks JSONB NOT NULL,
+              consensus_type VARCHAR(50) NOT NULL,
+              confidence FLOAT NOT NULL,
+              timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+          
+          CREATE TABLE IF NOT EXISTS training_data (
+              id SERIAL PRIMARY KEY,
+              framework VARCHAR(50) NOT NULL,
+              claim TEXT NOT NULL,
+              evidence JSONB NOT NULL,
+              validity BOOLEAN NOT NULL,
+              confidence FLOAT,
+              metadata JSONB,
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              used_in_training BOOLEAN DEFAULT FALSE,
+              training_batch_id VARCHAR(255)
+          );
+          
+          -- Create indexes
+          CREATE INDEX idx_verification_claim_id ON verification_results(claim_id);
+          CREATE INDEX idx_verification_framework ON verification_results(framework);
+          CREATE INDEX idx_consensus_claim_id ON consensus_decisions(claim_id);
+          CREATE INDEX idx_training_framework ON training_data(framework);
+
+# Redis configuration (Bitnami chart)
+redis:
+  enabled: true
+  
+  architecture: standalone
+  
+  auth:
+    enabled: false
+    password: ""
+  
+  master:
+    persistence:
+      enabled: false
+    
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+
+# Prometheus configuration
+prometheus:
+  enabled: true
+  
+  alertmanager:
+    enabled: false
+  
+  server:
+    persistentVolume:
+      enabled: true
+      size: 10Gi
+    
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "500m"
+      limits:
+        memory: "2Gi"
+        cpu: "2000m"
+    
+    # Scrape configs are defined in the configmap
+    extraScrapeConfigs: |
+      - job_name: 'brahminykite-services'
+        static_configs:
+          - targets:
+            - 'empirical-service:9090'
+            - 'contextual-service:9090'
+            - 'consistency-service:9090'
+            - 'power-dynamics-service:9090'
+            - 'utility-service:9090'
+            - 'evolution-service:9090'
+            - 'api-service:9090'
+        scrape_interval: 5s
+        metrics_path: /metrics
+
+# Grafana configuration
+grafana:
+  enabled: true
+  
+  adminUser: admin
+  adminPassword: grafana-admin-2024
+  
+  persistence:
+    enabled: true
+    size: 5Gi
+  
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "200m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          url: http://prometheus-server
+          access: proxy
+          isDefault: true
+  
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: 'default'
+          orgId: 1
+          folder: ''
+          type: file
+          disableDeletion: false
+          updateIntervalSeconds: 10
+          allowUiUpdates: true
+          options:
+            path: /var/lib/grafana/dashboards/default
+  
+  dashboardsConfigMaps:
+    default: brahminykite-dashboards
+
+# Autoscaling configuration
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# Security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+# Pod security context
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+# Container security context
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# Monitoring and observability
+monitoring:
+  # Enable metrics collection
+  metrics:
+    enabled: true
+    port: 9090
+    path: /metrics
+  
+  # Enable distributed tracing
+  tracing:
+    enabled: false
+    endpoint: ""
+    samplingRate: 0.1
+  
+  # Enable profiling
+  profiling:
+    enabled: false
+    port: 6060
+
+# Logging configuration
+logging:
+  level: INFO
+  format: json
+  output: stdout
+
+# Feature flags
+features:
+  # Enable consensus mechanisms
+  consensus:
+    enabled: true
+    type: paxos
+  
+  # Enable caching
+  caching:
+    enabled: true
+    ttl: 300
+  
+  # Enable rate limiting
+  rateLimiting:
+    enabled: true
+    requestsPerMinute: 60
+    burst: 100
+
+# Test configuration
+tests:
+  enabled: true
+  image:
+    repository: brahminykite/test-runner
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent

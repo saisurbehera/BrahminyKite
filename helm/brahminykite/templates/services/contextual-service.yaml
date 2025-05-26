@@ -1,0 +1,27 @@
+{{- if .Values.services.contextual.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "brahminykite.fullname" . }}-contextual
+  labels:
+    {{- include "brahminykite.labels" . | nindent 4 }}
+    app.kubernetes.io/component: contextual
+  {{- with .Values.services.contextual.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.services.contextual.service.type | default "ClusterIP" }}
+  ports:
+    - port: {{ .Values.services.contextual.service.grpcPort }}
+      targetPort: grpc
+      protocol: TCP
+      name: grpc
+    - port: {{ .Values.services.contextual.service.httpPort }}
+      targetPort: http
+      protocol: TCP
+      name: metrics
+  selector:
+    {{- include "brahminykite.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: contextual
+{{- end }}
