@@ -1,0 +1,71 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: brahminykite-production
+  labels:
+    app.kubernetes.io/name: brahminykite
+    app.kubernetes.io/environment: production
+
+bases:
+  - ../../base
+
+# No namePrefix for production (clean names)
+
+commonLabels:
+  app.kubernetes.io/environment: production
+  app.kubernetes.io/instance: production
+
+commonAnnotations:
+  environment: production
+  deployment.kubernetes.io/revision: "1"
+
+# Production-specific resource adjustments (full scaling)
+replicas:
+  - name: empirical-service
+    count: 3
+  - name: contextual-service
+    count: 3
+  - name: consistency-service
+    count: 3
+  - name: power-dynamics-service
+    count: 3
+  - name: utility-service
+    count: 3
+  - name: evolution-service
+    count: 3
+  - name: api-service
+    count: 5
+
+# Production images (use specific version tags)
+images:
+  - name: brahminykite/empirical-service
+    newTag: v1.0.0
+  - name: brahminykite/contextual-service
+    newTag: v1.0.0
+  - name: brahminykite/consistency-service
+    newTag: v1.0.0
+  - name: brahminykite/power-dynamics-service
+    newTag: v1.0.0
+  - name: brahminykite/utility-service
+    newTag: v1.0.0
+  - name: brahminykite/evolution-service
+    newTag: v1.0.0
+  - name: brahminykite/api
+    newTag: v1.0.0
+
+# Production-specific patches
+patchesStrategicMerge:
+  - prod-resource-limits.yaml
+  - prod-security-patch.yaml
+  - prod-hpa.yaml
+
+# Production-specific config
+configMapGenerator:
+  - name: prod-config
+    literals:
+      - LOG_LEVEL=WARNING
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - ENABLE_PROFILING=false
+      - ENABLE_SECURITY_HARDENING=true

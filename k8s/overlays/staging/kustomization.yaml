@@ -1,0 +1,68 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: brahminykite-staging
+  labels:
+    app.kubernetes.io/name: brahminykite
+    app.kubernetes.io/environment: staging
+
+bases:
+  - ../../base
+
+namePrefix: staging-
+
+commonLabels:
+  app.kubernetes.io/environment: staging
+  app.kubernetes.io/instance: staging
+
+commonAnnotations:
+  environment: staging
+  deployment.kubernetes.io/revision: "1"
+
+# Staging-specific resource adjustments (between dev and prod)
+replicas:
+  - name: empirical-service
+    count: 1
+  - name: contextual-service
+    count: 1
+  - name: consistency-service
+    count: 1
+  - name: power-dynamics-service
+    count: 1
+  - name: utility-service
+    count: 1
+  - name: evolution-service
+    count: 1
+  - name: api-service
+    count: 2
+
+# Staging images (could use :staging tag)
+images:
+  - name: brahminykite/empirical-service
+    newTag: staging
+  - name: brahminykite/contextual-service
+    newTag: staging
+  - name: brahminykite/consistency-service
+    newTag: staging
+  - name: brahminykite/power-dynamics-service
+    newTag: staging
+  - name: brahminykite/utility-service
+    newTag: staging
+  - name: brahminykite/evolution-service
+    newTag: staging
+  - name: brahminykite/api
+    newTag: staging
+
+# Staging-specific patches
+patchesStrategicMerge:
+  - staging-ingress-patch.yaml
+
+# Staging-specific config
+configMapGenerator:
+  - name: staging-config
+    literals:
+      - LOG_LEVEL=INFO
+      - ENVIRONMENT=staging
+      - DEBUG=false
+      - ENABLE_PROFILING=false

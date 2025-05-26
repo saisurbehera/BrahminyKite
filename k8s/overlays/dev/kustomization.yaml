@@ -1,0 +1,69 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: brahminykite-dev
+  labels:
+    app.kubernetes.io/name: brahminykite
+    app.kubernetes.io/environment: development
+
+bases:
+  - ../../base
+
+namePrefix: dev-
+
+commonLabels:
+  app.kubernetes.io/environment: development
+  app.kubernetes.io/instance: dev
+
+commonAnnotations:
+  environment: development
+  deployment.kubernetes.io/revision: "1"
+
+# Development-specific resource adjustments
+replicas:
+  - name: empirical-service
+    count: 1
+  - name: contextual-service
+    count: 1
+  - name: consistency-service
+    count: 1
+  - name: power-dynamics-service
+    count: 1
+  - name: utility-service
+    count: 1
+  - name: evolution-service
+    count: 1
+  - name: api-service
+    count: 1
+
+# Development images (could use :dev tag)
+images:
+  - name: brahminykite/empirical-service
+    newTag: dev
+  - name: brahminykite/contextual-service
+    newTag: dev
+  - name: brahminykite/consistency-service
+    newTag: dev
+  - name: brahminykite/power-dynamics-service
+    newTag: dev
+  - name: brahminykite/utility-service
+    newTag: dev
+  - name: brahminykite/evolution-service
+    newTag: dev
+  - name: brahminykite/api
+    newTag: dev
+
+# Development-specific patches
+patchesStrategicMerge:
+  - dev-resource-limits.yaml
+  - dev-ingress-patch.yaml
+
+# Development-specific config
+configMapGenerator:
+  - name: dev-config
+    literals:
+      - LOG_LEVEL=DEBUG
+      - ENVIRONMENT=development
+      - DEBUG=true
+      - ENABLE_PROFILING=true

@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: brahminykite-api-config
+  namespace: brahminykite
+  labels:
+    app.kubernetes.io/name: brahminykite
+    app.kubernetes.io/component: api
+data:
+  api_config.yaml: |
+    api:
+      host: 0.0.0.0
+      port: 8000
+      workers: 4
+      reload: false
+      cors_origins:
+        - "*"
+      docs_url: /docs
+      redoc_url: /redoc
+      openapi_url: /openapi.json
+    
+    services:
+      empirical:
+        host: empirical-service
+        port: 50051
+      contextual:
+        host: contextual-service
+        port: 50052
+      consistency:
+        host: consistency-service
+        port: 50053
+      power_dynamics:
+        host: power-dynamics-service
+        port: 50054
+      utility:
+        host: utility-service
+        port: 50055
+      evolution:
+        host: evolution-service
+        port: 50056
+    
+    rate_limiting:
+      enabled: true
+      requests_per_minute: 60
+      burst: 100
+    
+    auth:
+      enabled: false  # To be implemented
+      jwt_secret_key: ""  # Will be set via secret
+      algorithm: HS256
+      access_token_expire_minutes: 30

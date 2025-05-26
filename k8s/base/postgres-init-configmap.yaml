@@ -1,0 +1,107 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-scripts
+  namespace: brahminykite
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/part-of: brahminykite
+    app.kubernetes.io/component: database
+data:
+  init.sql: |
+    -- Create tables for BrahminyKite
+    
+    -- Verification results table
+    CREATE TABLE IF NOT EXISTS verification_results (
+        id SERIAL PRIMARY KEY,
+        claim_id VARCHAR(255) NOT NULL,
+        framework VARCHAR(50) NOT NULL,
+        result JSONB NOT NULL,
+        confidence FLOAT NOT NULL,
+        evidence JSONB,
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    -- Consensus decisions table
+    CREATE TABLE IF NOT EXISTS consensus_decisions (
+        id SERIAL PRIMARY KEY,
+        claim_id VARCHAR(255) NOT NULL,
+        consensus_result JSONB NOT NULL,
+        participating_frameworks JSONB NOT NULL,
+        consensus_type VARCHAR(50) NOT NULL,
+        confidence FLOAT NOT NULL,
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    -- Training data table
+    CREATE TABLE IF NOT EXISTS training_data (
+        id SERIAL PRIMARY KEY,
+        framework VARCHAR(50) NOT NULL,
+        claim TEXT NOT NULL,
+        evidence JSONB NOT NULL,
+        validity BOOLEAN NOT NULL,
+        confidence FLOAT,
+        metadata JSONB,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        used_in_training BOOLEAN DEFAULT FALSE,
+        training_batch_id VARCHAR(255)
+    );
+    
+    -- Model checkpoints table
+    CREATE TABLE IF NOT EXISTS model_checkpoints (
+        id SERIAL PRIMARY KEY,
+        model_name VARCHAR(255) NOT NULL,
+        framework VARCHAR(50),
+        checkpoint_path TEXT NOT NULL,
+        metrics JSONB NOT NULL,
+        training_config JSONB,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        is_active BOOLEAN DEFAULT FALSE
+    );
+    
+    -- Service health table
+    CREATE TABLE IF NOT EXISTS service_health (
+        id SERIAL PRIMARY KEY,
+        service_name VARCHAR(50) NOT NULL,
+        status VARCHAR(20) NOT NULL,
+        last_heartbeat TIMESTAMP NOT NULL,
+        metadata JSONB,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    -- Create indexes
+    CREATE INDEX idx_verification_claim_id ON verification_results(claim_id);
+    CREATE INDEX idx_verification_framework ON verification_results(framework);
+    CREATE INDEX idx_verification_timestamp ON verification_results(timestamp);
+    
+    CREATE INDEX idx_consensus_claim_id ON consensus_decisions(claim_id);
+    CREATE INDEX idx_consensus_timestamp ON consensus_decisions(timestamp);
+    
+    CREATE INDEX idx_training_framework ON training_data(framework);
+    CREATE INDEX idx_training_used ON training_data(used_in_training);
+    CREATE INDEX idx_training_batch ON training_data(training_batch_id);
+    
+    CREATE INDEX idx_checkpoint_model ON model_checkpoints(model_name);
+    CREATE INDEX idx_checkpoint_active ON model_checkpoints(is_active);
+    
+    CREATE INDEX idx_health_service ON service_health(service_name);
+    CREATE INDEX idx_health_heartbeat ON service_health(last_heartbeat);
+    
+    -- Create update timestamp trigger
+    CREATE OR REPLACE FUNCTION update_updated_at_column()
+    RETURNS TRIGGER AS $$
+    BEGIN
+        NEW.updated_at = CURRENT_TIMESTAMP;
+        RETURN NEW;
+    END;
+    $$ language 'plpgsql';
+    
+    CREATE TRIGGER update_verification_results_updated_at BEFORE UPDATE
+        ON verification_results FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+    
+    CREATE TRIGGER update_consensus_decisions_updated_at BEFORE UPDATE
+        ON consensus_decisions FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

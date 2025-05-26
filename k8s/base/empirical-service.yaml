@@ -1,0 +1,134 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: empirical-service
+  namespace: brahminykite
+  labels:
+    app.kubernetes.io/name: empirical-service
+    app.kubernetes.io/part-of: brahminykite
+    app.kubernetes.io/component: framework-service
+spec:
+  ports:
+    - port: 50051
+      targetPort: 50051
+      protocol: TCP
+      name: grpc
+    - port: 9090
+      targetPort: 9090
+      protocol: TCP
+      name: metrics
+  selector:
+    app.kubernetes.io/name: empirical-service
+    app.kubernetes.io/part-of: brahminykite
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: empirical-service
+  namespace: brahminykite
+  labels:
+    app.kubernetes.io/name: empirical-service
+    app.kubernetes.io/part-of: brahminykite
+    app.kubernetes.io/component: framework-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: empirical-service
+      app.kubernetes.io/part-of: brahminykite
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: empirical-service
+        app.kubernetes.io/part-of: brahminykite
+        app.kubernetes.io/component: framework-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: brahminykite-service
+      containers:
+      - name: empirical-service
+        image: brahminykite/empirical-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 50051
+          name: grpc
+        - containerPort: 9090
+          name: metrics
+        env:
+        - name: SERVICE_NAME
+          value: "empirical"
+        - name: SERVICE_PORT
+          value: "50051"
+        - name: METRICS_PORT
+          value: "9090"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: POSTGRES_HOST
+          value: "postgres-service"
+        - name: POSTGRES_PORT
+          value: "5432"
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: brahminykite-secrets
+              key: postgres-db
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: brahminykite-secrets
+              key: postgres-user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: brahminykite-secrets
+              key: postgres-password
+        - name: REDIS_HOST
+          value: "redis-service"
+        - name: REDIS_PORT
+          value: "6379"
+        volumeMounts:
+        - name: service-config
+          mountPath: /app/config
+          readOnly: true
+        - name: logs
+          mountPath: /var/log/brahminykite
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          grpc:
+            port: 50051
+            service: brahminykite.Empirical
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+        readinessProbe:
+          grpc:
+            port: 50051
+            service: brahminykite.Empirical
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+      volumes:
+      - name: service-config
+        configMap:
+          name: brahminykite-services-config
+      - name: logs
+        emptyDir: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: brahminykite-service
+  namespace: brahminykite
+  labels:
+    app.kubernetes.io/name: brahminykite
+    app.kubernetes.io/component: service-account

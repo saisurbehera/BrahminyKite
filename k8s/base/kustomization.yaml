@@ -1,0 +1,94 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: brahminykite-base
+  labels:
+    app.kubernetes.io/name: brahminykite
+    app.kubernetes.io/part-of: brahminykite
+
+resources:
+  # Namespace and RBAC
+  - namespace.yaml
+  
+  # Configuration
+  - configmap-services.yaml
+  - configmap-api.yaml
+  - secret.yaml
+  
+  # Database and Cache
+  - postgres-statefulset.yaml
+  - postgres-init-configmap.yaml
+  - redis-deployment.yaml
+  
+  # Framework Services
+  - empirical-service.yaml
+  - contextual-service.yaml
+  - consistency-service.yaml
+  - power-dynamics-service.yaml
+  - utility-service.yaml
+  - evolution-service.yaml
+  
+  # API Gateway
+  - api-deployment.yaml
+  
+  # Monitoring Stack
+  - prometheus.yaml
+  - grafana.yaml
+  
+  # Ingress
+  - ingress.yaml
+
+commonLabels:
+  app.kubernetes.io/part-of: brahminykite
+  app.kubernetes.io/managed-by: kustomize
+
+# Common annotations for all resources
+commonAnnotations:
+  config.kubernetes.io/local-config: "false"
+  deployment.kubernetes.io/revision: "1"
+
+# Namespace for all resources
+namespace: brahminykite
+
+# Images to be used (will be overridden in overlays)
+images:
+  - name: brahminykite/empirical-service
+    newTag: latest
+  - name: brahminykite/contextual-service
+    newTag: latest
+  - name: brahminykite/consistency-service
+    newTag: latest
+  - name: brahminykite/power-dynamics-service
+    newTag: latest
+  - name: brahminykite/utility-service
+    newTag: latest
+  - name: brahminykite/evolution-service
+    newTag: latest
+  - name: brahminykite/api
+    newTag: latest
+
+# Resource configurations
+replicas:
+  - name: empirical-service
+    count: 2
+  - name: contextual-service
+    count: 2
+  - name: consistency-service
+    count: 2
+  - name: power-dynamics-service
+    count: 2
+  - name: utility-service
+    count: 2
+  - name: evolution-service
+    count: 2
+  - name: api-service
+    count: 3
+  - name: prometheus
+    count: 1
+  - name: grafana
+    count: 1
+  - name: redis
+    count: 1
+  - name: postgres
+    count: 1

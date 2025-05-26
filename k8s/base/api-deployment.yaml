@@ -1,0 +1,156 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-service
+  namespace: brahminykite
+  labels:
+    app.kubernetes.io/name: api-service
+    app.kubernetes.io/part-of: brahminykite
+    app.kubernetes.io/component: api
+spec:
+  ports:
+    - port: 8000
+      targetPort: 8000
+      protocol: TCP
+      name: http
+    - port: 9090
+      targetPort: 9090
+      protocol: TCP
+      name: metrics
+  selector:
+    app.kubernetes.io/name: api-service
+    app.kubernetes.io/part-of: brahminykite
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-service
+  namespace: brahminykite
+  labels:
+    app.kubernetes.io/name: api-service
+    app.kubernetes.io/part-of: brahminykite
+    app.kubernetes.io/component: api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: api-service
+      app.kubernetes.io/part-of: brahminykite
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: api-service
+        app.kubernetes.io/part-of: brahminykite
+        app.kubernetes.io/component: api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: brahminykite-service
+      containers:
+      - name: api-service
+        image: brahminykite/api:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+          name: http
+        - containerPort: 9090
+          name: metrics
+        env:
+        - name: API_HOST
+          value: "0.0.0.0"
+        - name: API_PORT
+          value: "8000"
+        - name: METRICS_PORT
+          value: "9090"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: ENVIRONMENT
+          value: "production"
+        - name: EMPIRICAL_SERVICE_HOST
+          value: "empirical-service"
+        - name: EMPIRICAL_SERVICE_PORT
+          value: "50051"
+        - name: CONTEXTUAL_SERVICE_HOST
+          value: "contextual-service"
+        - name: CONTEXTUAL_SERVICE_PORT
+          value: "50052"
+        - name: CONSISTENCY_SERVICE_HOST
+          value: "consistency-service"
+        - name: CONSISTENCY_SERVICE_PORT
+          value: "50053"
+        - name: POWER_DYNAMICS_SERVICE_HOST
+          value: "power-dynamics-service"
+        - name: POWER_DYNAMICS_SERVICE_PORT
+          value: "50054"
+        - name: UTILITY_SERVICE_HOST
+          value: "utility-service"
+        - name: UTILITY_SERVICE_PORT
+          value: "50055"
+        - name: EVOLUTION_SERVICE_HOST
+          value: "evolution-service"
+        - name: EVOLUTION_SERVICE_PORT
+          value: "50056"
+        - name: POSTGRES_HOST
+          value: "postgres-service"
+        - name: POSTGRES_PORT
+          value: "5432"
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: brahminykite-secrets
+              key: postgres-db
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: brahminykite-secrets
+              key: postgres-user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: brahminykite-secrets
+              key: postgres-password
+        - name: REDIS_HOST
+          value: "redis-service"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: JWT_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: brahminykite-secrets
+              key: jwt-secret-key
+        volumeMounts:
+        - name: api-config
+          mountPath: /app/config
+          readOnly: true
+        - name: logs
+          mountPath: /var/log/brahminykite
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "300m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+      volumes:
+      - name: api-config
+        configMap:
+          name: brahminykite-api-config
+      - name: logs
+        emptyDir: {}
