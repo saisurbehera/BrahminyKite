@@ -11,5 +11,6 @@ Handles temporal robustness and adaptive learning:
 """
 
 from .evolutionary import EvolutionaryVerifier
+from .evolution_real import RealEvolutionFramework
 
-__all__ = ["EvolutionaryVerifier"]
+__all__ = ["EvolutionaryVerifier", "RealEvolutionFramework"]

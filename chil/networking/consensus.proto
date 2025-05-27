@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package consensus;
+
+// Network message for all consensus communication
+message NetworkMessage {
+    string message_id = 1;
+    string message_type = 2;
+    string sender_id = 3;
+    string recipient_id = 4;
+    string payload = 5;  // JSON encoded payload
+    string timestamp = 6;
+}
+
+// Response for message sending
+message MessageResponse {
+    bool success = 1;
+    string error = 2;
+}
+
+// Paxos-specific messages
+message PaxosPrepare {
+    int64 proposal_number = 1;
+    string proposer_id = 2;
+    string proposal_id = 3;
+}
+
+message PaxosPromise {
+    int64 proposal_number = 1;
+    string acceptor_id = 2;
+    bool accepted = 3;
+    int64 highest_proposal_seen = 4;
+    string accepted_value = 5;  // JSON encoded
+}
+
+message PaxosAccept {
+    int64 proposal_number = 1;
+    string proposer_id = 2;
+    string proposal_value = 3;  // JSON encoded
+}
+
+message PaxosAccepted {
+    int64 proposal_number = 1;
+    string acceptor_id = 2;
+    bool accepted = 3;
+}
+
+// Health check
+message HealthRequest {}
+
+message HealthResponse {
+    bool healthy = 1;
+    string status = 2;
+}
+
+// Service definition
+service ConsensusService {
+    // Send a message to this node
+    rpc SendMessage(NetworkMessage) returns (MessageResponse);
+    
+    // Health check
+    rpc HealthCheck(HealthRequest) returns (HealthResponse);
+}
