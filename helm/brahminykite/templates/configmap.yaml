@@ -1,0 +1,144 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "brahminykite.fullname" . }}-config
+  namespace: {{ include "brahminykite.namespace" . }}
+  labels:
+    {{- include "brahminykite.labels" . | nindent 4 }}
+    app.kubernetes.io/component: configuration
+data:
+  service_config.yaml: |
+    services:
+      empirical:
+        port: {{ .Values.services.empirical.port }}
+        workers: 4
+        max_connections: 100
+        timeout: 30s
+      contextual:
+        port: {{ .Values.services.contextual.port }}
+        workers: 4
+        max_connections: 100
+        timeout: 30s
+      consistency:
+        port: {{ .Values.services.consistency.port }}
+        workers: 4
+        max_connections: 100
+        timeout: 30s
+      power_dynamics:
+        port: {{ .Values.services.powerDynamics.port }}
+        workers: 4
+        max_connections: 100
+        timeout: 30s
+      utility:
+        port: {{ .Values.services.utility.port }}
+        workers: 4
+        max_connections: 100
+        timeout: 30s
+      evolution:
+        port: {{ .Values.services.evolution.port }}
+        workers: 4
+        max_connections: 100
+        timeout: 30s
+    
+    database:
+      host: {{ include "brahminykite.postgresql.fullname" . }}
+      port: {{ include "brahminykite.postgresql.port" . }}
+      name: {{ .Values.global.postgresql.auth.database }}
+      pool_size: 20
+      max_overflow: 10
+    
+    redis:
+      host: {{ include "brahminykite.redis.fullname" . }}
+      port: {{ include "brahminykite.redis.port" . }}
+      max_connections: 50
+      socket_timeout: 5
+      socket_connect_timeout: 5
+    
+    monitoring:
+      prometheus_port: {{ .Values.monitoring.metrics.port | default 9090 }}
+      metrics_path: {{ .Values.monitoring.metrics.path | default "/metrics" }}
+      enable_tracing: {{ .Values.monitoring.tracing.enabled | default false }}
+      enable_profiling: {{ .Values.monitoring.profiling.enabled | default false }}
+    
+    features:
+      consensus:
+        enabled: {{ .Values.features.consensus.enabled }}
+        type: {{ .Values.features.consensus.type }}
+      caching:
+        enabled: {{ .Values.features.caching.enabled }}
+        ttl: {{ .Values.features.caching.ttl }}
+      rate_limiting:
+        enabled: {{ .Values.features.rateLimiting.enabled }}
+        requests_per_minute: {{ .Values.features.rateLimiting.requestsPerMinute }}
+        burst: {{ .Values.features.rateLimiting.burst }}
+  
+  logging.yaml: |
+    version: 1
+    disable_existing_loggers: false
+    formatters:
+      default:
+        format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+      json:
+        class: pythonjsonlogger.jsonlogger.JsonFormatter
+        format: '%(asctime)s %(name)s %(levelname)s %(message)s'
+    handlers:
+      console:
+        class: logging.StreamHandler
+        level: {{ .Values.logging.level }}
+        formatter: {{ .Values.logging.format }}
+        stream: ext://sys.{{ .Values.logging.output }}
+    root:
+      level: {{ .Values.logging.level }}
+      handlers: [console]
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "brahminykite.fullname" . }}-api-config
+  namespace: {{ include "brahminykite.namespace" . }}
+  labels:
+    {{- include "brahminykite.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+data:
+  api_config.yaml: |
+    api:
+      host: 0.0.0.0
+      port: {{ .Values.api.service.port }}
+      workers: 4
+      reload: false
+      cors_origins:
+        - "{{ .Values.api.env.CORS_ORIGINS }}"
+      docs_url: /docs
+      redoc_url: /redoc
+      openapi_url: /openapi.json
+    
+    services:
+      empirical:
+        host: {{ .Values.services.empirical.name }}
+        port: {{ .Values.services.empirical.port }}
+      contextual:
+        host: {{ .Values.services.contextual.name }}
+        port: {{ .Values.services.contextual.port }}
+      consistency:
+        host: {{ .Values.services.consistency.name }}
+        port: {{ .Values.services.consistency.port }}
+      power_dynamics:
+        host: {{ .Values.services.powerDynamics.name }}
+        port: {{ .Values.services.powerDynamics.port }}
+      utility:
+        host: {{ .Values.services.utility.name }}
+        port: {{ .Values.services.utility.port }}
+      evolution:
+        host: {{ .Values.services.evolution.name }}
+        port: {{ .Values.services.evolution.port }}
+    
+    rate_limiting:
+      enabled: {{ .Values.api.env.RATE_LIMIT_ENABLED }}
+      requests_per_minute: {{ .Values.api.env.RATE_LIMIT_PER_MINUTE }}
+      burst: {{ .Values.features.rateLimiting.burst | default 100 }}
+    
+    auth:
+      enabled: {{ .Values.features.auth.enabled | default false }}
+      jwt_secret_key: ""  # Will be set via secret
+      algorithm: HS256
+      access_token_expire_minutes: 30

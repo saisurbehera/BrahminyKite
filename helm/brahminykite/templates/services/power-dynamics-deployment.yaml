@@ -1,0 +1,107 @@
+{{- if .Values.services.powerDynamics.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "brahminykite.fullname" . }}-power-dynamics
+  labels:
+    {{- include "brahminykite.labels" . | nindent 4 }}
+    app.kubernetes.io/component: power-dynamics
+  {{- with .Values.services.powerDynamics.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.services.powerDynamics.replicas }}
+  selector:
+    matchLabels:
+      {{- include "brahminykite.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: power-dynamics
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.services.powerDynamics.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "brahminykite.labels" . | nindent 8 }}
+        app.kubernetes.io/component: power-dynamics
+        {{- with .Values.services.powerDynamics.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "brahminykite.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.services.powerDynamics.podSecurityContext | nindent 8 }}
+      containers:
+        - name: power-dynamics
+          securityContext:
+            {{- toYaml .Values.services.powerDynamics.securityContext | nindent 12 }}
+          image: "{{ .Values.services.powerDynamics.image.repository }}:{{ .Values.services.powerDynamics.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.services.powerDynamics.image.pullPolicy }}
+          ports:
+            - name: grpc
+              containerPort: {{ .Values.services.powerDynamics.service.grpcPort }}
+              protocol: TCP
+            - name: http
+              containerPort: {{ .Values.services.powerDynamics.service.httpPort }}
+              protocol: TCP
+          livenessProbe:
+            grpc:
+              port: {{ .Values.services.powerDynamics.service.grpcPort }}
+            initialDelaySeconds: {{ .Values.services.powerDynamics.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.services.powerDynamics.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.services.powerDynamics.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.services.powerDynamics.livenessProbe.failureThreshold }}
+          readinessProbe:
+            grpc:
+              port: {{ .Values.services.powerDynamics.service.grpcPort }}
+            initialDelaySeconds: {{ .Values.services.powerDynamics.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.services.powerDynamics.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.services.powerDynamics.readinessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.services.powerDynamics.readinessProbe.successThreshold }}
+          resources:
+            {{- toYaml .Values.services.powerDynamics.resources | nindent 12 }}
+          env:
+            - name: SERVICE_NAME
+              value: power-dynamics
+            - name: GRPC_PORT
+              value: "{{ .Values.services.powerDynamics.service.grpcPort }}"
+            - name: HTTP_PORT
+              value: "{{ .Values.services.powerDynamics.service.httpPort }}"
+            - name: LOG_LEVEL
+              value: "{{ .Values.global.logLevel }}"
+            {{- with .Values.services.powerDynamics.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+              readOnly: true
+            {{- with .Values.services.powerDynamics.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "brahminykite.fullname" . }}-config
+        {{- with .Values.services.powerDynamics.volumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.services.powerDynamics.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.services.powerDynamics.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.services.powerDynamics.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

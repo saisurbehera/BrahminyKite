@@ -1,0 +1,107 @@
+{{- if .Values.services.contextual.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "brahminykite.fullname" . }}-contextual
+  labels:
+    {{- include "brahminykite.labels" . | nindent 4 }}
+    app.kubernetes.io/component: contextual
+  {{- with .Values.services.contextual.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.services.contextual.replicas }}
+  selector:
+    matchLabels:
+      {{- include "brahminykite.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: contextual
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.services.contextual.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "brahminykite.labels" . | nindent 8 }}
+        app.kubernetes.io/component: contextual
+        {{- with .Values.services.contextual.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "brahminykite.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.services.contextual.podSecurityContext | nindent 8 }}
+      containers:
+        - name: contextual
+          securityContext:
+            {{- toYaml .Values.services.contextual.securityContext | nindent 12 }}
+          image: "{{ .Values.services.contextual.image.repository }}:{{ .Values.services.contextual.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.services.contextual.image.pullPolicy }}
+          ports:
+            - name: grpc
+              containerPort: {{ .Values.services.contextual.service.grpcPort }}
+              protocol: TCP
+            - name: http
+              containerPort: {{ .Values.services.contextual.service.httpPort }}
+              protocol: TCP
+          livenessProbe:
+            grpc:
+              port: {{ .Values.services.contextual.service.grpcPort }}
+            initialDelaySeconds: {{ .Values.services.contextual.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.services.contextual.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.services.contextual.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.services.contextual.livenessProbe.failureThreshold }}
+          readinessProbe:
+            grpc:
+              port: {{ .Values.services.contextual.service.grpcPort }}
+            initialDelaySeconds: {{ .Values.services.contextual.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.services.contextual.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.services.contextual.readinessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.services.contextual.readinessProbe.successThreshold }}
+          resources:
+            {{- toYaml .Values.services.contextual.resources | nindent 12 }}
+          env:
+            - name: SERVICE_NAME
+              value: contextual
+            - name: GRPC_PORT
+              value: "{{ .Values.services.contextual.service.grpcPort }}"
+            - name: HTTP_PORT
+              value: "{{ .Values.services.contextual.service.httpPort }}"
+            - name: LOG_LEVEL
+              value: "{{ .Values.global.logLevel }}"
+            {{- with .Values.services.contextual.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+              readOnly: true
+            {{- with .Values.services.contextual.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "brahminykite.fullname" . }}-config
+        {{- with .Values.services.contextual.volumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.services.contextual.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.services.contextual.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.services.contextual.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

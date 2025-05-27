@@ -1,0 +1,259 @@
+syntax = "proto3";
+
+package brahminykite.consensus;
+
+option go_package = "github.com/brahminykite/consensus/proto";
+option java_package = "io.brahminykite.consensus.proto";
+option java_multiple_files = true;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/any.proto";
+
+// ConsensusNetwork service for peer-to-peer communication
+service ConsensusNetwork {
+  // Peer discovery and membership
+  rpc Join(JoinRequest) returns (JoinResponse);
+  rpc Leave(LeaveRequest) returns (LeaveResponse);
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+  rpc GetPeers(GetPeersRequest) returns (GetPeersResponse);
+  
+  // Consensus protocol messages
+  rpc Prepare(PrepareRequest) returns (PrepareResponse);
+  rpc Promise(PromiseRequest) returns (PromiseResponse);
+  rpc Accept(AcceptRequest) returns (AcceptResponse);
+  rpc Accepted(AcceptedRequest) returns (AcceptedResponse);
+  
+  // State synchronization
+  rpc GetState(GetStateRequest) returns (GetStateResponse);
+  rpc SyncState(stream StateSyncRequest) returns (stream StateSyncResponse);
+  rpc GetSnapshot(GetSnapshotRequest) returns (stream SnapshotChunk);
+  rpc ApplySnapshot(stream SnapshotChunk) returns (ApplySnapshotResponse);
+}
+
+// Node information
+message NodeInfo {
+  string node_id = 1;
+  string address = 2;
+  NodeRole role = 3;
+  NodeStatus status = 4;
+  google.protobuf.Timestamp last_seen = 5;
+  map<string, string> metadata = 6;
+}
+
+enum NodeRole {
+  NODE_ROLE_UNSPECIFIED = 0;
+  NODE_ROLE_LEADER = 1;
+  NODE_ROLE_FOLLOWER = 2;
+  NODE_ROLE_CANDIDATE = 3;
+}
+
+enum NodeStatus {
+  NODE_STATUS_UNSPECIFIED = 0;
+  NODE_STATUS_HEALTHY = 1;
+  NODE_STATUS_SUSPECT = 2;
+  NODE_STATUS_FAILED = 3;
+}
+
+// Peer Discovery Messages
+message JoinRequest {
+  NodeInfo node_info = 1;
+  string cluster_token = 2;
+}
+
+message JoinResponse {
+  bool accepted = 1;
+  string reason = 2;
+  repeated NodeInfo peers = 3;
+  ConsensusConfig config = 4;
+}
+
+message LeaveRequest {
+  string node_id = 1;
+  string reason = 2;
+}
+
+message LeaveResponse {
+  bool acknowledged = 1;
+}
+
+message HeartbeatRequest {
+  string node_id = 1;
+  uint64 term = 2;
+  NodeStatus status = 3;
+  map<string, double> metrics = 4;
+}
+
+message HeartbeatResponse {
+  bool acknowledged = 1;
+  uint64 current_term = 2;
+  string leader_id = 3;
+}
+
+message GetPeersRequest {
+  bool include_failed = 1;
+}
+
+message GetPeersResponse {
+  repeated NodeInfo peers = 1;
+  string leader_id = 2;
+  uint64 current_term = 3;
+}
+
+// Consensus Protocol Messages (Paxos)
+message ProposalID {
+  uint64 number = 1;
+  string node_id = 2;
+}
+
+message ConsensusValue {
+  string key = 1;
+  google.protobuf.Any value = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  map<string, string> metadata = 4;
+}
+
+message PrepareRequest {
+  ProposalID proposal_id = 1;
+  string key = 2;
+  uint64 instance = 3;
+}
+
+message PrepareResponse {
+  bool promised = 1;
+  ProposalID highest_proposal = 2;
+  ConsensusValue accepted_value = 3;
+}
+
+message PromiseRequest {
+  ProposalID proposal_id = 1;
+  string key = 2;
+  uint64 instance = 3;
+  repeated PrepareResponse promises = 4;
+}
+
+message PromiseResponse {
+  bool acknowledged = 1;
+}
+
+message AcceptRequest {
+  ProposalID proposal_id = 1;
+  ConsensusValue value = 2;
+  uint64 instance = 3;
+}
+
+message AcceptResponse {
+  bool accepted = 1;
+  string reason = 2;
+}
+
+message AcceptedRequest {
+  ProposalID proposal_id = 1;
+  ConsensusValue value = 2;
+  uint64 instance = 3;
+  string acceptor_id = 4;
+}
+
+message AcceptedResponse {
+  bool acknowledged = 1;
+}
+
+// State Management Messages
+message GetStateRequest {
+  repeated string keys = 1;
+  bool include_metadata = 2;
+}
+
+message GetStateResponse {
+  map<string, ConsensusValue> state = 1;
+  uint64 version = 2;
+}
+
+message StateSyncRequest {
+  oneof request {
+    StateSyncStart start = 1;
+    StateSyncData data = 2;
+    StateSyncEnd end = 3;
+  }
+}
+
+message StateSyncStart {
+  string node_id = 1;
+  uint64 from_version = 2;
+  uint64 to_version = 3;
+}
+
+message StateSyncData {
+  repeated StateEntry entries = 1;
+  uint64 chunk_number = 2;
+}
+
+message StateSyncEnd {
+  uint64 total_chunks = 1;
+  string checksum = 2;
+}
+
+message StateSyncResponse {
+  oneof response {
+    StateSyncAck ack = 1;
+    StateSyncError error = 2;
+  }
+}
+
+message StateSyncAck {
+  uint64 chunk_number = 1;
+  bool need_resend = 2;
+}
+
+message StateSyncError {
+  string error_message = 1;
+  uint64 failed_chunk = 2;
+}
+
+message StateEntry {
+  string key = 1;
+  ConsensusValue value = 2;
+  uint64 version = 3;
+}
+
+// Snapshot Messages
+message GetSnapshotRequest {
+  uint64 up_to_version = 1;
+}
+
+message SnapshotChunk {
+  uint64 chunk_number = 1;
+  uint64 total_chunks = 2;
+  bytes data = 3;
+  string checksum = 4;
+  SnapshotMetadata metadata = 5;
+}
+
+message SnapshotMetadata {
+  uint64 version = 1;
+  google.protobuf.Timestamp created_at = 2;
+  string created_by = 3;
+  uint64 size_bytes = 4;
+}
+
+message ApplySnapshotResponse {
+  bool success = 1;
+  string error_message = 2;
+  uint64 applied_version = 3;
+}
+
+// Configuration
+message ConsensusConfig {
+  string cluster_id = 1;
+  uint32 min_nodes = 2;
+  uint32 replication_factor = 3;
+  ConsensusTimeouts timeouts = 4;
+  map<string, string> options = 5;
+}
+
+message ConsensusTimeouts {
+  uint32 prepare_timeout_ms = 1;
+  uint32 accept_timeout_ms = 2;
+  uint32 heartbeat_interval_ms = 3;
+  uint32 election_timeout_ms = 4;
+  uint32 sync_timeout_ms = 5;
+}

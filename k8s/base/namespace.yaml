@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: brahminykite
+  labels:
+    app.kubernetes.io/name: brahminykite
+    app.kubernetes.io/instance: production
+    app.kubernetes.io/component: infrastructure

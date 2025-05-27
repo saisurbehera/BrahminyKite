@@ -1,0 +1,141 @@
+{{- if .Values.api.enabled -}}
+apiVersion: {{ include "brahminykite.deployment.apiVersion" . }}
+kind: Deployment
+metadata:
+  name: {{ include "brahminykite.fullname" . }}-api
+  namespace: {{ include "brahminykite.namespace" . }}
+  labels:
+    {{- include "brahminykite.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  replicas: {{ .Values.api.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "brahminykite.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: api
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- include "brahminykite.podAnnotations" . | nindent 8 }}
+      labels:
+        {{- include "brahminykite.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: api
+    spec:
+      {{- include "brahminykite.imagePullSecret" . | nindent 6 }}
+      serviceAccountName: {{ include "brahminykite.serviceAccountName" . }}
+      {{- include "brahminykite.podSecurityContext" . | nindent 6 }}
+      containers:
+      - name: api
+        image: {{ include "brahminykite.api.image" . }}
+        imagePullPolicy: {{ .Values.api.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.api.service.port }}
+          protocol: TCP
+        - name: metrics
+          containerPort: {{ .Values.monitoring.metrics.port | default 9090 }}
+          protocol: TCP
+        env:
+        - name: API_HOST
+          value: "0.0.0.0"
+        - name: API_PORT
+          value: {{ .Values.api.service.port | quote }}
+        - name: METRICS_PORT
+          value: {{ .Values.monitoring.metrics.port | default "9090" | quote }}
+        - name: LOG_LEVEL
+          value: {{ .Values.api.env.LOG_LEVEL | quote }}
+        - name: ENVIRONMENT
+          value: {{ .Values.environment | default "production" | quote }}
+        # Service endpoints
+        {{- range $key, $service := .Values.services }}
+        {{- if hasKey $service "enabled" }}
+        {{- if $service.enabled }}
+        - name: {{ upper $key }}_SERVICE_HOST
+          value: {{ include "brahminykite.fullname" $ }}-{{ $service.name }}
+        - name: {{ upper $key }}_SERVICE_PORT
+          value: {{ $service.port | quote }}
+        {{- end }}
+        {{- end }}
+        {{- end }}
+        # Database configuration
+        - name: POSTGRES_HOST
+          value: {{ include "brahminykite.postgresql.fullname" . }}
+        - name: POSTGRES_PORT
+          value: {{ include "brahminykite.postgresql.port" . | quote }}
+        - name: POSTGRES_DB
+          value: {{ .Values.global.postgresql.auth.database | quote }}
+        - name: POSTGRES_USER
+          value: {{ include "brahminykite.postgresql.username" . | quote }}
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "brahminykite.postgresql.secretName" . }}
+              key: {{ include "brahminykite.postgresql.secretKey" . }}
+        # Redis configuration
+        - name: REDIS_HOST
+          value: {{ include "brahminykite.redis.fullname" . }}
+        - name: REDIS_PORT
+          value: {{ include "brahminykite.redis.port" . | quote }}
+        {{- if and .Values.redis.auth.enabled .Values.redis.enabled }}
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "brahminykite.redis.secretName" . }}
+              key: redis-password
+        {{- end }}
+        # Auth configuration
+        - name: JWT_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "brahminykite.fullname" . }}-secrets
+              key: jwt-secret-key
+        # Additional environment variables
+        - name: CORS_ORIGINS
+          value: {{ .Values.api.env.CORS_ORIGINS | quote }}
+        - name: RATE_LIMIT_ENABLED
+          value: {{ .Values.api.env.RATE_LIMIT_ENABLED | quote }}
+        - name: RATE_LIMIT_PER_MINUTE
+          value: {{ .Values.api.env.RATE_LIMIT_PER_MINUTE | quote }}
+        volumeMounts:
+        - name: config
+          mountPath: /app/config
+          readOnly: true
+        - name: logs
+          mountPath: /var/log/brahminykite
+        resources:
+          {{- toYaml .Values.api.resources | nindent 10 }}
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+        {{- include "brahminykite.containerSecurityContext" . | nindent 8 }}
+      volumes:
+      - name: config
+        configMap:
+          name: {{ include "brahminykite.fullname" . }}-api-config
+      - name: logs
+        emptyDir: {}
+      {{- with .Values.global.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.global.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.global.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

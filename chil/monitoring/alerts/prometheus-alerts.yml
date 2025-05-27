@@ -1,0 +1,196 @@
+groups:
+  - name: brahminykite.alerts
+    rules:
+      # Service Health Alerts
+      - alert: ServiceDown
+        expr: brahminykite_service_health_status == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "BrahminyKite service {{ $labels.service }} is down"
+          description: "Service {{ $labels.service }} has been down for more than 1 minute."
+          runbook_url: "https://docs.brahminykite.io/runbooks/service-down"
+
+      - alert: HighErrorRate
+        expr: rate(brahminykite_grpc_requests_total{status!="success"}[5m]) / rate(brahminykite_grpc_requests_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "High error rate on {{ $labels.service }}"
+          description: "Error rate is {{ $value | humanizePercentage }} for service {{ $labels.service }}"
+          runbook_url: "https://docs.brahminykite.io/runbooks/high-error-rate"
+
+      - alert: SlowResponseTime
+        expr: histogram_quantile(0.95, rate(brahminykite_grpc_request_duration_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "Slow response time on {{ $labels.service }}"
+          description: "95th percentile response time is {{ $value }}s for service {{ $labels.service }}"
+          runbook_url: "https://docs.brahminykite.io/runbooks/slow-response"
+
+      # Consensus Network Alerts
+      - alert: ConsensusNetworkPartition
+        expr: brahminykite_consensus_active_peers < 2
+        for: 30s
+        labels:
+          severity: critical
+          component: consensus
+        annotations:
+          summary: "Consensus network partition detected"
+          description: "Only {{ $value }} active peers in consensus network. Minimum required: 2"
+          runbook_url: "https://docs.brahminykite.io/runbooks/network-partition"
+
+      - alert: ConsensusHighLatency
+        expr: histogram_quantile(0.95, rate(brahminykite_consensus_network_latency_seconds_bucket[5m])) > 1
+        for: 2m
+        labels:
+          severity: warning
+          component: consensus
+        annotations:
+          summary: "High consensus network latency"
+          description: "95th percentile network latency is {{ $value }}s"
+          runbook_url: "https://docs.brahminykite.io/runbooks/consensus-latency"
+
+      - alert: FrequentLeaderElections
+        expr: rate(brahminykite_consensus_leader_elections_total[10m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: consensus
+        annotations:
+          summary: "Frequent leader elections detected"
+          description: "Leader election rate is {{ $value }} elections per second"
+          runbook_url: "https://docs.brahminykite.io/runbooks/leader-elections"
+
+      # AI Framework Performance Alerts
+      - alert: LowVerificationAccuracy
+        expr: rate(brahminykite_claims_processed_total{result="success"}[1h]) / rate(brahminykite_claims_processed_total[1h]) < 0.8
+        for: 10m
+        labels:
+          severity: warning
+          framework: "{{ $labels.framework }}"
+        annotations:
+          summary: "Low verification accuracy for {{ $labels.framework }}"
+          description: "Verification accuracy is {{ $value | humanizePercentage }} for framework {{ $labels.framework }}"
+          runbook_url: "https://docs.brahminykite.io/runbooks/low-accuracy"
+
+      - alert: ModelInferenceTimeout
+        expr: histogram_quantile(0.95, rate(brahminykite_model_inference_duration_seconds_bucket[5m])) > 10
+        for: 5m
+        labels:
+          severity: warning
+          component: ai-models
+        annotations:
+          summary: "Model inference taking too long"
+          description: "95th percentile model inference time is {{ $value }}s for model {{ $labels.model_type }}"
+          runbook_url: "https://docs.brahminykite.io/runbooks/model-timeout"
+
+      - alert: LowCacheHitRate
+        expr: rate(brahminykite_model_cache_hits_total[5m]) / (rate(brahminykite_model_cache_hits_total[5m]) + rate(brahminykite_model_inference_duration_seconds_count[5m])) < 0.5
+        for: 10m
+        labels:
+          severity: info
+          component: caching
+        annotations:
+          summary: "Low cache hit rate for model {{ $labels.model_type }}"
+          description: "Cache hit rate is {{ $value | humanizePercentage }} for model {{ $labels.model_type }}"
+          runbook_url: "https://docs.brahminykite.io/runbooks/cache-performance"
+
+      # Resource Usage Alerts
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value | humanizePercentage }}"
+          runbook_url: "https://docs.brahminykite.io/runbooks/high-memory"
+
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value }}%"
+          runbook_url: "https://docs.brahminykite.io/runbooks/high-cpu"
+
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) < 0.1
+        for: 1m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }}"
+          description: "Disk space is {{ $value | humanizePercentage }} full on {{ $labels.mountpoint }}"
+          runbook_url: "https://docs.brahminykite.io/runbooks/disk-space"
+
+      # API Gateway Alerts
+      - alert: HighAPILatency
+        expr: histogram_quantile(0.95, rate(brahminykite_http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "High API latency"
+          description: "95th percentile API response time is {{ $value }}s"
+          runbook_url: "https://docs.brahminykite.io/runbooks/api-latency"
+
+      - alert: RateLimitThresholdReached
+        expr: rate(brahminykite_rate_limit_hits_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: info
+          component: api
+        annotations:
+          summary: "Rate limit threshold reached"
+          description: "Rate limit hits: {{ $value }} per second on {{ $labels.endpoint }}"
+          runbook_url: "https://docs.brahminykite.io/runbooks/rate-limits"
+
+      # Database Alerts
+      - alert: DatabaseConnectionsHigh
+        expr: brahminykite_active_connections{connection_type="database"} > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "High database connection count"
+          description: "{{ $value }} active database connections"
+          runbook_url: "https://docs.brahminykite.io/runbooks/db-connections"
+
+      # Training Pipeline Alerts
+      - alert: TrainingJobFailed
+        expr: increase(brahminykite_training_jobs_total{status="failed"}[1h]) > 0
+        for: 1m
+        labels:
+          severity: warning
+          component: training
+        annotations:
+          summary: "Training job failed"
+          description: "{{ $value }} training jobs failed in the last hour"
+          runbook_url: "https://docs.brahminykite.io/runbooks/training-failure"
+
+      - alert: ModelAccuracyDegraded
+        expr: brahminykite_model_accuracy < 0.8
+        for: 30m
+        labels:
+          severity: warning
+          component: ai-models
+        annotations:
+          summary: "Model accuracy has degraded"
+          description: "Model {{ $labels.model_name }} accuracy is {{ $value | humanizePercentage }}"
+          runbook_url: "https://docs.brahminykite.io/runbooks/model-degradation"

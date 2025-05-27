@@ -1,0 +1,107 @@
+{{- if .Values.services.utility.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "brahminykite.fullname" . }}-utility
+  labels:
+    {{- include "brahminykite.labels" . | nindent 4 }}
+    app.kubernetes.io/component: utility
+  {{- with .Values.services.utility.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.services.utility.replicas }}
+  selector:
+    matchLabels:
+      {{- include "brahminykite.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: utility
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.services.utility.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "brahminykite.labels" . | nindent 8 }}
+        app.kubernetes.io/component: utility
+        {{- with .Values.services.utility.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "brahminykite.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.services.utility.podSecurityContext | nindent 8 }}
+      containers:
+        - name: utility
+          securityContext:
+            {{- toYaml .Values.services.utility.securityContext | nindent 12 }}
+          image: "{{ .Values.services.utility.image.repository }}:{{ .Values.services.utility.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.services.utility.image.pullPolicy }}
+          ports:
+            - name: grpc
+              containerPort: {{ .Values.services.utility.service.grpcPort }}
+              protocol: TCP
+            - name: http
+              containerPort: {{ .Values.services.utility.service.httpPort }}
+              protocol: TCP
+          livenessProbe:
+            grpc:
+              port: {{ .Values.services.utility.service.grpcPort }}
+            initialDelaySeconds: {{ .Values.services.utility.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.services.utility.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.services.utility.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.services.utility.livenessProbe.failureThreshold }}
+          readinessProbe:
+            grpc:
+              port: {{ .Values.services.utility.service.grpcPort }}
+            initialDelaySeconds: {{ .Values.services.utility.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.services.utility.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.services.utility.readinessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.services.utility.readinessProbe.successThreshold }}
+          resources:
+            {{- toYaml .Values.services.utility.resources | nindent 12 }}
+          env:
+            - name: SERVICE_NAME
+              value: utility
+            - name: GRPC_PORT
+              value: "{{ .Values.services.utility.service.grpcPort }}"
+            - name: HTTP_PORT
+              value: "{{ .Values.services.utility.service.httpPort }}"
+            - name: LOG_LEVEL
+              value: "{{ .Values.global.logLevel }}"
+            {{- with .Values.services.utility.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+              readOnly: true
+            {{- with .Values.services.utility.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "brahminykite.fullname" . }}-config
+        {{- with .Values.services.utility.volumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.services.utility.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.services.utility.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.services.utility.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

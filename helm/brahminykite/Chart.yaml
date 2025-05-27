@@ -1,0 +1,89 @@
+apiVersion: v2
+name: brahminykite
+description: A Helm chart for BrahminyKite - Multi-Framework AI Verification System
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+
+keywords:
+  - ai
+  - verification
+  - grpc
+  - microservices
+  - philosophical-frameworks
+
+home: https://github.com/brahminykite/brahminykite
+sources:
+  - https://github.com/brahminykite/brahminykite
+
+maintainers:
+  - name: BrahminyKite Team
+    email: admin@brahminykite.io
+
+icon: https://brahminykite.io/icon.png
+
+dependencies:
+  - name: postgresql
+    version: "12.1.9"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: postgresql.enabled
+    tags:
+      - database
+    import-values:
+      - child: auth.username
+        parent: global.postgresql.auth.username
+      - child: auth.password
+        parent: global.postgresql.auth.password
+      - child: auth.database
+        parent: global.postgresql.auth.database
+
+  - name: redis
+    version: "17.3.14"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: redis.enabled
+    tags:
+      - cache
+    import-values:
+      - child: auth.password
+        parent: global.redis.auth.password
+
+  - name: prometheus
+    version: "19.0.2"
+    repository: "https://prometheus-community.github.io/helm-charts"
+    condition: prometheus.enabled
+    tags:
+      - monitoring
+
+  - name: grafana
+    version: "6.50.0"
+    repository: "https://grafana.github.io/helm-charts"
+    condition: grafana.enabled
+    tags:
+      - monitoring
+
+annotations:
+  # Chart documentation
+  artifacthub.io/category: ai-ml
+  artifacthub.io/license: MIT
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/signKey: |
+    fingerprint: 1234567890ABCDEF
+    url: https://brahminykite.io/pgp-key.asc
+  
+  # Security scanning
+  artifacthub.io/containsSecurityUpdates: "false"
+  artifacthub.io/images: |
+    - name: empirical-service
+      image: brahminykite/empirical-service:1.0.0
+    - name: contextual-service
+      image: brahminykite/contextual-service:1.0.0
+    - name: consistency-service
+      image: brahminykite/consistency-service:1.0.0
+    - name: power-dynamics-service
+      image: brahminykite/power-dynamics-service:1.0.0
+    - name: utility-service
+      image: brahminykite/utility-service:1.0.0
+    - name: evolution-service
+      image: brahminykite/evolution-service:1.0.0
+    - name: api
+      image: brahminykite/api:1.0.0
